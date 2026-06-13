@@ -1,0 +1,407 @@
+import { useState, useEffect, useRef } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRight, Bike, ShieldCheck, Zap, MapPin, Phone, Star, Sparkles, Globe, Sun, Moon, Smartphone, Download, X } from "lucide-react";
+import { useAppStore, store, translate } from "@/lib/store";
+// @ts-ignore
+import heroVideo from "../../videos/hero_video.mp4";
+
+export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Rideuu — Chennai bike & auto on demand" },
+      {
+        name: "description",
+        content:
+          "Book bikes and autos across Chennai in seconds. Tamil voice booking, women safety mode, flood alerts and live tracking.",
+      },
+    ],
+  }),
+  component: Landing,
+});
+
+function Landing() {
+  const { language, theme, womenSafetyMode, isPwaInstalled } = useAppStore();
+  const [showContent, setShowContent] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // PWA states
+  const [showBanner, setShowBanner] = useState(true);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  // Check if running in standalone mode (already installed)
+  useEffect(() => {
+    const checkStandalone = () => {
+      const isStandaloneMode = 
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (navigator as any).standalone ||
+        document.referrer.includes('android-app://');
+      setIsStandalone(isStandaloneMode);
+      if (isStandaloneMode) {
+        store.setPwaInstalled(true);
+      }
+    };
+    checkStandalone();
+  }, []);
+
+  // Listen to browser PWA install prompt event
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowBanner(true);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstallPwa = async () => {
+    if (deferredPrompt) {
+      try {
+        await deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === "accepted") {
+          store.setPwaInstalled(true);
+          setShowBanner(false);
+        }
+      } catch (err) {
+        console.error("[PWA] Error executing prompt():", err);
+      }
+      setDeferredPrompt(null);
+    } else {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      if (isIOS) {
+        alert(
+          language === "en"
+            ? "To install Rideuu on iOS:\n1. Tap the Share button in Safari (at the bottom).\n2. Scroll down and tap 'Add to Home Screen'."
+            : "iOS இல் ரைடு நிறுவுவதற்கு:\n1. சஃபாரியில் ஷேர் (Share) பொத்தானைத் தட்டவும் (கீழே).\n2. கீழே உருட்டி 'முகப்புத் திரையில் சேர்' (Add to Home Screen) என்பதைத் தட்டவும்."
+        );
+      } else {
+        alert(
+          language === "en"
+            ? "To install Rideuu on your browser:\n1. Tap the 3 dots in the top-right corner.\n2. Tap 'Install App' or 'Add to Home Screen'."
+            : "உங்கள் சாதனத்தில் ரைடு நிறுவுவதற்கு:\n1. மேல் வலது மூலையில் உள்ள 3 புள்ளிகளைத் தட்டவும்.\n2. 'ஆப்பை நிறுவு' அல்லது 'முகப்புத் திரையில் சேர்' என்பதைத் தேர்ந்தெடுக்கவும்."
+        );
+      }
+      store.setPwaInstalled(true);
+      setShowBanner(false);
+      store.addNotification({
+        cat: "alerts",
+        title: "App Shortcut Guide Shown!",
+        tamilTitle: "செயலி நிறுவல் வழிகாட்டி!",
+        body: "Follow the prompt details to add Rideuu to your home screen.",
+        tamilBody: "ரைடு உங்கள் முகப்புத் திரையில் சேர்க்க வழிகாட்டியைப் பின்பற்றவும்."
+      });
+    }
+  };
+
+  const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    if (e.currentTarget.currentTime >= 12) {
+      setShowContent(true);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowContent(true);
+    }, 4000); // Speed up fade-in for smoother testing response
+    return () => clearTimeout(timer);
+  }, []);
+
+  const t = (key: string) => translate(key, language);
+
+  return (
+    <div className="min-h-dvh bg-background text-foreground transition-colors duration-300">
+
+      {/* Top Banner */}
+      <div className="bg-primary text-primary-foreground text-[10px] font-bold tracking-widest uppercase transition-colors duration-300">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2">
+          <div className="flex items-center gap-1.5 opacity-90">
+            <MapPin className="size-3" />
+            <span>Serving all of Chennai · 24×7 · சென்னை முழுவதும்</span>
+          </div>
+          <div className="hidden items-center gap-4 sm:flex opacity-90">
+            <span className="flex items-center gap-1.5"><Phone className="size-3" /> +91 98842 64816</span>
+            <span>zenelaitinfotech@gmail.com</span>
+          </div>
+        </div>
+        <div className="checkered-sm h-1.5 w-full" />
+      </div>
+
+      {/* Navigation Header */}
+      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+          <Link to="/" className="flex items-center gap-2">
+            <img src="./ridu_logo.png" alt="Rideuu" height={150} width={150} />
+            {/* <span className="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground font-extrabold shadow-md shadow-primary/20 transition-colors">N</span> */}
+            {/* <span className="text-lg font-extrabold tracking-tight">
+              Namma<span className="text-primary">Ride</span>
+            </span> */}
+          </Link>
+
+          <nav className="hidden items-center gap-6 text-xs font-bold uppercase tracking-wider text-muted-foreground md:flex">
+            <a href="#how" className="hover:text-primary transition-colors">How it works</a>
+            <a href="#safety" className="hover:text-primary transition-colors">Safety</a>
+            <a href="#download" className="hover:text-primary transition-colors">Get the App</a>
+          </nav>
+
+          <div className="flex items-center gap-2.5">
+            {/* Quick switches */}
+            <button
+              onClick={() => store.setLanguage(language === "en" ? "ta" : "en")}
+              className="rounded-full border border-border bg-card px-2.5 py-1 text-[10px] font-bold shadow-sm transition hover:bg-muted"
+            >
+              {language === "en" ? "தமிழ்" : "EN"}
+            </button>
+
+            <button
+              onClick={() => store.setTheme(theme === "dark" ? "light" : "dark")}
+              className="grid size-8 place-items-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground transition shadow-sm"
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? <Sun className="size-4 text-amber-500" /> : <Moon className="size-4" />}
+            </button>
+
+            <Link
+              to="/app/home"
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-extrabold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-105 active:scale-[0.98]"
+            >
+              {language === "en" ? "Book a Ride" : "சவாரி செய்"} <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* PWA Install Banner */}
+      {showBanner && !isStandalone && (
+        <div className="bg-primary/10 border-b border-primary/20 p-4 text-xs font-semibold">
+          <div className="mx-auto max-w-6xl flex items-center justify-between gap-4 px-4">
+            <div className="flex items-center gap-3">
+              <div className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground shrink-0 shadow shadow-primary/20">
+                <Smartphone className="size-5" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-extrabold text-foreground">
+                  {language === "en" ? "Install Rideuu App" : "நம்ம ரைடு செயலியை நிறுவவும்"}
+                </h3>
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-normal">
+                  {language === "en" 
+                    ? "Add to home screen for 1-tap offline ride booking and safe routes"
+                    : "ஆஃப்லைன் சவாரி முன்பதிவுக்கு முகப்புத் திரையில் சேர்க்கவும்"}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={handleInstallPwa}
+                className="rounded-xl bg-primary px-4 py-2 text-[10px] font-black text-primary-foreground shadow flex items-center gap-1 hover:brightness-105 active:scale-95 transition cursor-pointer"
+              >
+                <Download className="size-3" /> {language === "en" ? "Install" : "நிறுவவும்"}
+              </button>
+              <button onClick={() => setShowBanner(false)} className="text-muted-foreground hover:text-foreground cursor-pointer">
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cinematic Hero Section */}
+      <section className="relative min-h-[600px] grid place-items-center overflow-hidden bg-black text-white">
+        {/* Background Video */}
+        <video
+          ref={videoRef}
+          src={heroVideo}
+          autoPlay
+          muted
+          loop
+          playsInline
+          onTimeUpdate={handleTimeUpdate}
+          className="absolute inset-0 h-full w-full object-cover opacity-60 z-0"
+        />
+
+        {/* Cinematic Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90 z-10" />
+
+        <div className={`relative z-20 mx-auto grid w-full max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-[1.1fr_0.9fr] md:py-20 transition-all duration-1000 ease-out ${showContent
+          ? "opacity-100 translate-y-0 scale-100"
+          : "opacity-0 translate-y-8 scale-98 pointer-events-none"
+          }`}
+        >
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary/20 border border-primary/30 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary animate-pulse">
+              <span className="size-1.5 rounded-full bg-primary" />
+              வணக்கம் Chennai · Welcome to Rideuu
+            </span>
+            <h1 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-tight text-balance md:text-6xl text-white">
+              {language === "en" ? (
+                <>Fast & affordable<br /><span className="text-primary">bike & auto</span> rides.</>
+              ) : (
+                <>வேகமான மற்றும் மலிவான<br /><span className="text-primary font-tamil">பைக் & ஆட்டோ</span> சவாரிகள்.</>
+              )}
+            </h1>
+            <p className="mt-5 max-w-lg text-sm text-white/80 md:text-base leading-relaxed">
+              {language === "en"
+                ? "Rideuu is Chennai-first. Tamil voice booking, women safety mode, flood-aware routing and zero surge surprises — built for our city."
+                : "நம்ம ரைடு சென்னைக்கானது. தமிழ் குரல் பதிவு, பெண்கள் பாதுகாப்பு பயன்முறை, வெள்ள அபாய வழித்தடங்கள் மற்றும் கூடுதல் கட்டணங்கள் இல்லை."}
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                to="/app/home"
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-xs font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-105"
+              >
+                {language === "en" ? "Launch Web App" : "செயலியைத் தொடங்கு"} <ArrowRight className="size-4" />
+              </Link>
+              <a
+                href="#how"
+                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 backdrop-blur-xs px-6 py-3.5 text-xs font-bold text-white transition hover:bg-white/15"
+              >
+                {language === "en" ? "How it works" : "எப்படி செயல்படுகிறது"}
+              </a>
+            </div>
+
+            <div className="mt-8 flex flex-wrap items-center gap-5 text-xs text-white/70">
+              <div className="flex items-center gap-1.5"><Star className="size-4.5 fill-primary text-primary" /> 4.9 {t("Rating") || "Rating"}</div>
+              <div className="flex items-center gap-1.5"><ShieldCheck className="size-4.5 text-primary" /> Verified drivers</div>
+              <div className="flex items-center gap-1.5"><Zap className="size-4.5 text-primary" /> 3 min ETA avg</div>
+            </div>
+          </div>
+
+          {/* Premium UI Mockup Card */}
+          <div className="relative mx-auto w-full max-w-sm float-card">
+            <div className="absolute -inset-6 rounded-[40px] bg-primary/10 blur-3xl" />
+            <div className="relative rounded-[36px] border border-white/10 bg-background/90 backdrop-blur-md p-3 text-foreground shadow-2xl">
+              <div className="overflow-hidden rounded-[28px]">
+                <div className={`map-grid relative h-72 ${theme === "dark" ? "map-grid-dark" : "map-grid"}`}>
+                  {/* Glowing dynamic route overlays */}
+                  <div className="absolute left-[30%] top-[40%] size-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/30" />
+                  <div className="absolute left-[65%] top-[60%] size-2.5 rounded-full bg-primary ring-4 ring-primary/30" />
+                  <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full opacity-70">
+                    <path d="M 60 80 Q 90 100, 130 120" stroke="oklch(0.65 0.25 140)" strokeWidth="3" fill="none" strokeDasharray="5 4" />
+                  </svg>
+                  <div className="absolute right-4 top-4 rounded-full bg-card/95 px-2.5 py-1 text-[9px] font-bold shadow-md border border-border">
+                    12 riders nearby
+                  </div>
+                  {/* Flood warning map indicator mock */}
+                  <div className="absolute left-6 bottom-4 rounded-lg bg-blue-500/10 border border-blue-500/30 backdrop-blur-xs px-2 py-1 text-[8px] font-extrabold text-blue-500 flex items-center gap-1">
+                    <span className="size-1.5 rounded-full bg-blue-500 animate-ping" /> Safe Routing Active
+                  </div>
+                </div>
+                <div className="space-y-3 bg-card p-4 border-t border-border">
+                  <div className="rounded-2xl border border-border p-3 space-y-2.5 text-xs font-semibold bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <div className="size-2 rounded-full bg-emerald-500" />
+                      <span>Marina Lighthouse</span>
+                    </div>
+                    <div className="h-4 w-px border-l border-dashed border-border ml-1" />
+                    <div className="flex items-center gap-2">
+                      <div className="size-2 rounded-full bg-primary" />
+                      <span>T. Nagar · Pondy Bazaar</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-2xl border-2 border-primary bg-primary/5 p-3 text-left">
+                      <Bike className="size-4.5 text-primary" />
+                      <div className="mt-1 text-[11px] font-extrabold">{t("Bike")}</div>
+                      <div className="text-[10px] text-muted-foreground">₹45 · 3 min</div>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-card p-3 text-left">
+                      <div className="grid size-4.5 place-items-center rounded bg-secondary text-[9px] font-black text-secondary-foreground">A</div>
+                      <div className="mt-1 text-[11px] font-extrabold">{t("Auto")}</div>
+                      <div className="text-[10px] text-muted-foreground">₹82 · 5 min</div>
+                    </div>
+                  </div>
+                  <Link to="/app/home" className="block w-full text-center rounded-2xl bg-secondary py-3 text-xs font-extrabold text-secondary-foreground shadow shadow-secondary/15 transition hover:brightness-105 active:scale-[0.99]">
+                    {t("Confirm ride")}
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="checkered h-3 w-full" />
+      </section>
+
+      {/* How it works grid */}
+      <section id="how" className="mx-auto max-w-6xl px-4 py-16">
+        <div className="mb-12 max-w-2xl">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Rideuu Benefits</p>
+          <h2 className="mt-2 text-3xl font-extrabold tracking-tight md:text-4xl">
+            {language === "en" ? (
+              <>Not just a ride app. <span className="text-muted-foreground">A city companion.</span></>
+            ) : (
+              <>சவாரி செயலி மட்டுமல்ல. <span className="text-muted-foreground">நமது சென்னைத் துணைவன்.</span></>
+            )}
+          </h2>
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-3">
+          {[
+            { icon: Bike, title: "Bike & Auto Only", body: "No bloated car options or traffic delays. Fast and quick dispatch tailor-made for Chennai transit." },
+            { icon: ShieldCheck, title: "Women safety mode", body: "Equipped with Ladies Priority matching, certified female drivers, audio-recording logs and active SOS escalation." },
+            { icon: Zap, title: "Rain & flood aware", body: "Integrated waterlogging zone visualization, traffic overlays and dynamic high-demand smart pricing." },
+            { icon: MapPin, title: "Landmark pickup", body: 'Visual landmark selectors - "Near T-Nagar Saravana Stores" or "Marina Gate 2" - we get it right away.' },
+            { icon: Star, title: "Tamil-first experience", body: "Fully translated app pages, onboarding panels, voice assistants, and Tamil notification support." },
+            { icon: Phone, title: "Family tracking links", body: "Register emergency trusted contacts and automatically broadcast live trip timeline URLs for every booking." },
+          ].map((f, idx) => (
+            <div key={f.title} className={`group rounded-3xl border bg-card p-6 transition-all duration-300 hover:shadow-xl hover:scale-[1.01] ${idx === 0 ? "border-primary/50" : "border-border hover:border-primary/20"}`}>
+              <div className="grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110">
+                <f.icon className="size-5" />
+              </div>
+              <h3 className="mt-5 text-sm font-extrabold tracking-tight">{f.title}</h3>
+              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">{f.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Download Section */}
+      <section id="download" className="relative overflow-hidden bg-primary text-primary-foreground">
+        <div className="absolute inset-0 opacity-[0.06] checkered" />
+        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 px-4 py-16 md:flex-row md:items-center relative z-10">
+          <div>
+            <h3 className="text-2xl font-extrabold tracking-tight md:text-3xl">
+              {language === "en" ? "Ready to explore Chennai with Rideuu?" : "ரைடு மூலம் சவாரி செய்யத் தயாராக இருக்கிறீர்களா?"}
+            </h3>
+            <p className="mt-2 text-xs opacity-90 font-medium">Install Rideuu to your homescreen as an offline-capable PWA instantly.</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/app/home"
+              className="inline-flex items-center gap-2 rounded-full bg-secondary px-6 py-4 text-xs font-black text-secondary-foreground shadow-xl transition hover:brightness-110 hover:scale-105 active:scale-[0.98]"
+            >
+              {language === "en" ? "Launch Web App" : "செயலியைத் தொடங்கு"} <ArrowRight className="size-4" />
+            </Link>
+            <a
+              href="/chennai_rapido.apk"
+              download
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-xs px-6 py-4 text-xs font-black text-white shadow-xl transition hover:bg-white/20 hover:scale-105 active:scale-[0.98]"
+            >
+              <Download className="size-4" /> {language === "en" ? "Download Android APK" : "ஏபிகே பதிவிறக்க"}
+            </a>
+          </div>
+        </div>
+        <div className="checkered-sm h-2 w-full" />
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border bg-card py-10">
+        <div className="mx-auto max-w-6xl px-4 flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-muted-foreground font-semibold">
+          <div className="flex items-center gap-2">
+            <img src="./ridu_logo.png" alt="Rideuu" height={150} width={150} />
+            {/* <span className="grid size-7 place-items-center rounded-md bg-primary text-primary-foreground text-xs font-extrabold">N</span>
+            <span className="font-extrabold text-foreground tracking-tight">Rideuu</span> */}
+            <span>© {new Date().getFullYear()}</span>
+          </div>
+          <div className="flex gap-6">
+            <a href="#" className="hover:text-primary transition-colors">Privacy policy</a>
+            <a href="#" className="hover:text-primary transition-colors">Terms of service</a>
+            <a href="#" className="hover:text-primary transition-colors">Drive with Rideuu</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

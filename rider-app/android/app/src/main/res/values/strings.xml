@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Rideuu Driver</string>
+    <string name="title_activity_main">Rideuu Driver</string>
+    <string name="package_name">com.rideuu.driver</string>
+    <string name="custom_url_scheme">com.rideuu.driver</string>
+</resources>

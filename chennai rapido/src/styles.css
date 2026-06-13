@@ -1,0 +1,286 @@
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@source "../src";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-tamil: "Mukta Malar", "Inter", sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-taxi-yellow: var(--taxi-yellow);
+  --color-taxi-black: var(--taxi-black);
+}
+
+:root {
+  --radius: 0.875rem;
+  --taxi-yellow: #2563eb;
+  --taxi-black: #ffffff;
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #ffffff;
+  --secondary-foreground: #2563eb;
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  --accent: #2563eb;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #2563eb;
+  --chart-1: #2563eb;
+  --chart-2: #3b82f6;
+  --chart-3: #60a5fa;
+  --chart-4: #93c5fd;
+  --chart-5: #bfdbfe;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f8fafc;
+  --sidebar-accent-foreground: #2563eb;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #2563eb;
+  
+  /* Landmark Map styles */
+  --map-route-color: #2563eb;
+  --map-flood-overlay: rgba(59, 130, 246, 0.15);
+  --map-surge-overlay: rgba(37, 99, 235, 0.15);
+  --map-traffic-congestion: #ef4444;
+}
+
+.dark {
+  --taxi-yellow: #2563eb;
+  --taxi-black: #020617;
+  --background: #090d16;
+  --foreground: #f8fafc;
+  --card: #111827;
+  --card-foreground: #f8fafc;
+  --popover: #111827;
+  --popover-foreground: #f8fafc;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #2563eb;
+  --secondary-foreground: #020617;
+  --muted: #1f2937;
+  --muted-foreground: #9ca3af;
+  --accent: #2563eb;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #1f2937;
+  --input: #1f2937;
+  --ring: #2563eb;
+  --chart-1: #2563eb;
+  --chart-2: #3b82f6;
+  --chart-3: #60a5fa;
+  --chart-4: #93c5fd;
+  --sidebar: #111827;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1f2937;
+  --sidebar-accent-foreground: #2563eb;
+  --sidebar-border: #1f2937;
+  --sidebar-ring: #2563eb;
+
+  --map-route-color: #2563eb;
+  --map-flood-overlay: rgba(59, 130, 246, 0.25);
+  --map-surge-overlay: rgba(37, 99, 235, 0.2);
+  --map-traffic-congestion: #f87171;
+}
+
+/* Women Safety Mode - Global Override Theme */
+.safety-mode,
+.safety-mode .dark {
+  --primary: #ec4899;
+  --primary-foreground: #ffffff;
+  --secondary: #4f46e5;
+  --secondary-foreground: #fdf2f8;
+  --taxi-yellow: #ec4899;
+  --taxi-black: #4a044e;
+  --ring: #ec4899;
+  
+  --map-route-color: #ec4899;
+  --map-surge-overlay: rgba(236, 72, 153, 0.2);
+}
+
+.safety-mode:not(.dark) {
+  --background: #fdf2f8;
+  --card: #ffffff;
+  --border: #fbcfe8;
+  --card-foreground: #4a044e;
+  --foreground: #4a044e;
+  --muted: #fce7f3;
+  --muted-foreground: #db2777;
+}
+
+.safety-mode.dark {
+  --background: #18001a;
+  --card: #2e0033;
+  --border: #4d0054;
+  --card-foreground: #fdf2f8;
+  --foreground: #fdf2f8;
+  --muted: #3d0045;
+  --muted-foreground: #f472b6;
+}
+
+/* Float card animation */
+.float-card {
+  animation: float-anim 4s ease-in-out infinite;
+}
+
+@keyframes float-anim {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
+}
+
+/* Wave listening animation */
+@keyframes wave-anim {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+.wave-bar {
+  animation: wave-anim 0.8s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+/* Skeleton loader glowing */
+@keyframes skeleton-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.skeleton-pulse {
+  animation: skeleton-glow 1.5s ease-in-out infinite;
+}
+
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :lang(ta), .font-tamil {
+    font-family: var(--font-tamil);
+  }
+}
+
+/* ---- Taxi checkered pattern ---- */
+.checkered {
+  background-image:
+    linear-gradient(45deg, var(--taxi-black) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--taxi-black) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--taxi-black) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--taxi-black) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  background-color: var(--taxi-yellow);
+}
+.checkered-sm {
+  background-image:
+    linear-gradient(45deg, var(--taxi-black) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--taxi-black) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--taxi-black) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--taxi-black) 75%);
+  background-size: 10px 10px;
+  background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
+  background-color: var(--taxi-yellow);
+}
+
+/* hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* subtle map grid */
+.map-grid {
+  background-color: oklch(0.96 0.005 95);
+  background-image:
+    linear-gradient(oklch(0.92 0.008 95) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.92 0.008 95) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.map-grid-dark {
+  background-color: oklch(0.14 0.005 270);
+  background-image:
+    linear-gradient(oklch(0.2 0.008 270) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.2 0.008 270) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.6); opacity: 0.8; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+.pulse-ring::before {
+  content: ""; position: absolute; inset: 0; border-radius: 9999px;
+  background: currentColor; animation: pulse-ring 1.8s ease-out infinite;
+}

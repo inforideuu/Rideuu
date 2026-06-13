@@ -1,0 +1,15 @@
+from django.db import migrations, models
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('core', '0007_kycdocument_file'),
+    ]
+
+    operations = [
+        migrations.AddField(
+            model_name='userprofile',
+            name='sub_role',
+            field=models.CharField(blank=True, default='', max_length=50, null=True),
+        ),
+    ]
