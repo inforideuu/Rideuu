@@ -1,4 +1,17 @@
-export const BASE_URL = "http://localhost:8000/api";
+// Detect if we are running in a native mobile environment (Capacitor)
+const getBaseUrl = () => {
+  if (typeof window !== "undefined") {
+    const isNative = (window as any).Capacitor || window.location.href.includes("android-asset");
+    if (isNative) {
+      // 10.0.2.2 is the special host loopback address for the Android emulator.
+      // Replace with your local machine's LAN IP (e.g. "http://192.168.1.50:8000/api") if testing on a physical phone.
+      return "http://10.0.2.2:8000/api";
+    }
+  }
+  return "http://localhost:8000/api";
+};
+
+export const BASE_URL = getBaseUrl();
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const url = `${BASE_URL}${endpoint}`;
