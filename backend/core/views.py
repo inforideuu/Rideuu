@@ -2344,35 +2344,42 @@ from .models import OTPVerification
 
 class SendOTPView(APIView):
     def post(self, request):
-        email = request.data.get('email')
-        role = request.data.get('role', 'customer')
-        action = request.data.get('action', 'login')
-        
-        if not email:
-            return Response({'error': 'Email ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        email_clean = email.strip().lower()
-        if role == 'driver':
-            exists = UserProfile.objects.filter(email=email_clean, role='driver').exists()
+        try:
+            email = request.data.get('email')
+            role = request.data.get('role', 'customer')
+            action = request.data.get('action', 'login')
             
-            if action == 'login' and not exists:
-                return Response({
-                    'error': 'You are not registered as a rider. Please create a rider account.',
-                    'code': 'RIDER_NOT_FOUND'
-                }, status=status.HTTP_404_NOT_FOUND)
-            elif action == 'register' and exists:
-                return Response({
-                    'error': 'Email address already registered as a rider. Please log in.',
-                    'code': 'RIDER_ALREADY_EXISTS'
-                }, status=status.HTTP_400_BAD_REQUEST)
+            if not email:
+                return Response({'error': 'Email ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            email_clean = email.strip().lower()
+            if role == 'driver':
+                exists = UserProfile.objects.filter(email=email_clean, role='driver').exists()
+                
+                if action == 'login' and not exists:
+                    return Response({
+                        'error': 'You are not registered as a rider. Please create a rider account.',
+                        'code': 'RIDER_NOT_FOUND'
+                    }, status=status.HTTP_444_NOT_FOUND if hasattr(status, 'HTTP_444_NOT_FOUND') else status.HTTP_404_NOT_FOUND)
+                elif action == 'register' and exists:
+                    return Response({
+                        'error': 'Email address already registered as a rider. Please log in.',
+                        'code': 'RIDER_ALREADY_EXISTS'
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
-        otp_code = str(random.randint(1000, 9999))
-        
-        OTPVerification.objects.filter(email=email_clean).delete()
-        otp_record = OTPVerification.objects.create(email=email_clean, otp=otp_code)
-        print(f"[AUTH SendOTP] Generated OTP {otp_code} for email {email_clean}", flush=True)
-        send_email_otp(email_clean, otp_code)
-        return Response({'success': True, 'otp': otp_code, 'email': email_clean})
+            otp_code = str(random.randint(1000, 9999))
+            
+            OTPVerification.objects.filter(email=email_clean).delete()
+            otp_record = OTPVerification.objects.create(email=email_clean, otp=otp_code)
+            print(f"[AUTH SendOTP] Generated OTP {otp_code} for email {email_clean}", flush=True)
+            send_email_otp(email_clean, otp_code)
+            return Response({'success': True, 'otp': otp_code, 'email': email_clean})
+        except Exception as e:
+            import traceback
+            return Response({
+                'error': str(e),
+                'traceback': traceback.format_exc()
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class VerifyOTPView(APIView):
     def post(self, request):
