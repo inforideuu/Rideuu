@@ -42,6 +42,28 @@ function Login() {
   const [sendingOtp, setSendingOtp] = useState(false);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showPwaModal, setShowPwaModal] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`PWA install prompt outcome: ${outcome}`);
+      setDeferredPrompt(null);
+    }
+  };
 
   // Timer for OTP
   useEffect(() => {
@@ -614,15 +636,32 @@ function Login() {
           </ul>
         </div>
 
-        {/* Download Mobile APK option */}
-        <div className="mt-4">
+        {/* Download options: PWA & Mobile APK */}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {deferredPrompt ? (
+            <button
+              onClick={handleInstallPWA}
+              className="py-3.5 rounded-2xl bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 flex items-center justify-center gap-2 font-extrabold text-[11px] text-slate-950 active:scale-[0.98] transition shadow-md shadow-amber-500/10 cursor-pointer"
+            >
+              <Sparkles className="h-4 w-4 text-slate-950 shrink-0" />
+              <span>Install PWA App</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowPwaModal(true)}
+              className="py-3.5 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center gap-2 font-bold text-[11px] hover:bg-primary/20 active:scale-[0.98] transition text-primary cursor-pointer"
+            >
+              <Sparkles className="h-4 w-4 text-primary shrink-0" />
+              <span>Install PWA App</span>
+            </button>
+          )}
           <a
             href="/chennai_rapido.apk"
             download
-            className="w-full py-3.5 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center gap-2 font-bold text-xs hover:bg-primary/20 active:scale-[0.98] transition text-primary"
+            className="py-3.5 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center gap-2 font-bold text-[11px] hover:bg-primary/20 active:scale-[0.98] transition text-primary text-center"
           >
-            <Download className="h-4 w-4" />
-            <span>Download Chennai Rapido APK</span>
+            <Download className="h-4 w-4 shrink-0" />
+            <span>Download APK</span>
           </a>
         </div>
 
@@ -691,6 +730,37 @@ function Login() {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* PWA Instructions Modal */}
+      {showPwaModal && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-3xl border border-border/40 bg-background p-6 text-center space-y-4 animate-scale-in">
+            <Sparkles className="size-12 mx-auto text-primary animate-pulse" />
+            <div>
+              <h2 className="text-base font-bold">Install Rideuu Customer</h2>
+              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                To install this Progressive Web App:
+              </p>
+              <div className="mt-3 text-left bg-muted/30 p-3.5 rounded-xl border border-border/30 space-y-2 text-xs">
+                <p className="flex items-start gap-2">
+                  <span className="font-bold text-primary">1.</span>
+                  <span>On Android/Chrome: Wait for a prompt, or click "Add to Home screen" in browser settings.</span>
+                </p>
+                <p className="flex items-start gap-2">
+                  <span className="font-bold text-primary">2.</span>
+                  <span>On iOS Safari: Tap the <strong>Share</strong> button <span className="text-base font-normal">📤</span>, scroll down and tap <strong>Add to Home Screen</strong>.</span>
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowPwaModal(false)}
+              className="w-full rounded-xl bg-primary py-3 text-xs font-bold text-primary-foreground hover:brightness-105 active:scale-95 transition"
+            >
+              Okay, Got It!
+            </button>
           </div>
         </div>
       )}

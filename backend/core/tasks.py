@@ -138,7 +138,11 @@ def haversine_distance(lat1, lon1, lat2, lon2):
 def dispatch_ride(ride_id):
     """
     Sequentially dispatches the ride offer to nearby online drivers.
-    Attempts matching within expanding search radii: 2km, 3km, 5km, 8km, 10km.
+    If women_safety_match is active, dispatches in 3 strict fallback steps:
+      Step 1: All available female drivers across all radii
+      Step 2: All available women safety verified badge drivers across all radii
+      Step 3: All other eligible drivers
+    Within each step/phase, attempts matching within expanding search radii: 2km, 3km, 5km, 8km, 10km.
     Each driver has 15 seconds to accept or reject the offer.
     """
     from .models import Ride, UserProfile, RideDispatch, MatchingAttempt, TrackingHistory
@@ -162,159 +166,160 @@ def dispatch_ride(ride_id):
 
     radii = [2000, 3000, 5000, 8000, 10000]
     
-    for radius in radii:
-        # Reload ride to check if it has been cancelled or accepted already
-        ride.refresh_from_db()
-        if ride.status not in ['pending', 'requested', 'MATCHING_PENDING']:
-            logger.info(f"Ride #{ride_id} is no longer pending/requested/matching (current status: {ride.status}). Exiting dispatch.")
-            return {"status": "success", "message": f"Ride status: {ride.status}"}
+    # Define dispatch phases based on Women Safety Mode (Flow 2)
+    if getattr(ride, 'women_safety_match', False):
+        phases = ['female', 'verified', 'all']
+    else:
+        phases = ['all']
 
-        logger.info(f"Searching for drivers for Ride #{ride_id} in {radius}m radius...")
-        
-        # Get rejected drivers list
-        rejected_ids = [x.strip() for x in ride.rejected_drivers.split(',') if x.strip()]
-
-        # Query online, active, verified, available captains
-        filter_kwargs = {
-            'role': 'driver',
-            'online': True,
-            'can_go_online': True,
-            'kyc_status': 'VERIFIED',
-            'account_status': 'ACCOUNT_ACTIVE',
-            'is_available': True
-        }
-        online_drivers = UserProfile.objects.filter(**filter_kwargs)
-
-        eligible_candidates = []
-        for driver in online_drivers:
-            if str(driver.id) in rejected_ids:
-                continue
-            if not is_rider_eligible_for_matching(driver):
-                continue
-            
-            # Check vehicle type matches ride requested vehicle type
-            r_vehicle_type = ride.vehicle_type.lower()
-            if 'bike' in r_vehicle_type:
-                r_type = 'bike'
-            elif 'auto' in r_vehicle_type:
-                r_type = 'auto'
-            else:
-                r_type = r_vehicle_type
-
-            has_matching_vehicle = driver.vehicles.filter(approved=True, vehicle_type__iexact=r_type).exists()
-            if not has_matching_vehicle:
-                continue
-
-            # Check if active vehicle type matches
-            if driver.active_vehicle_type and driver.active_vehicle_type.lower() != r_type:
-                continue
-
-            # Calculate distance
-            dist = haversine_distance(
-                customer.current_latitude, customer.current_longitude,
-                driver.current_latitude, driver.current_longitude
-            )
-            if dist is None:
-                # Mock default distance if location is not set
-                dist = 300 + ((driver.id * 17 + ride.id * 31) % 2000)
-                
-            if dist <= radius:
-                eligible_candidates.append((driver, dist))
-
-        if not eligible_candidates:
-            logger.info(f"No eligible drivers found in {radius}m radius.")
-            continue
-
-        # Sort candidates by distance (nearest first)
-        eligible_candidates.sort(key=lambda x: x[1])
-
-        # Apply sequential fallback filtering for Women Safety Match
-        if getattr(ride, 'women_safety_match', False):
-            # Tier 1: Female drivers
-            female_candidates = [c for c in eligible_candidates if getattr(c[0], 'gender', '').lower() == 'female']
-            if female_candidates:
-                eligible_candidates = female_candidates
-                logger.info(f"Women Safety Mode: Found {len(female_candidates)} female drivers in {radius}m radius.")
-            else:
-                # Tier 2: Women safety verified or priority drivers
-                verified_candidates = [c for c in eligible_candidates if getattr(c[0], 'women_safety_verified', False) or getattr(c[0], 'women_priority_match', False)]
-                if verified_candidates:
-                    eligible_candidates = verified_candidates
-                    logger.info(f"Women Safety Mode: Found {len(verified_candidates)} women-safety verified/priority drivers in {radius}m radius.")
-                else:
-                    # Tier 3: Any drivers (fallback)
-                    logger.info(f"Women Safety Mode: No female or verified drivers. Falling back to all {len(eligible_candidates)} drivers in {radius}m radius.")
-
-        # Record this matching attempt
-        attempt = MatchingAttempt.objects.create(ride=ride, radius=radius)
-        attempt.drivers_considered.set([c[0] for c in eligible_candidates])
-        # Sequentially offer the ride to each candidate
-        for driver, dist in eligible_candidates:
-            # Recheck if ride has been accepted/cancelled
+    for phase in phases:
+        for radius in radii:
+            # Reload ride to check if it has been cancelled or accepted already
             ride.refresh_from_db()
             if ride.status not in ['pending', 'requested', 'MATCHING_PENDING']:
-                logger.info(f"Ride #{ride_id} is no longer pending/requested/matching. Exiting dispatch loop.")
+                logger.info(f"Ride #{ride_id} is no longer pending/requested/matching (current status: {ride.status}). Exiting dispatch.")
                 return {"status": "success", "message": f"Ride status: {ride.status}"}
 
-            logger.info(f"Offering Ride #{ride_id} to Driver {driver.name} (ID: {driver.id}) at distance {dist:.1f}m")
-            print(f"\n[RIDE DISPATCH] Ride #{ride_id} request is now SHOWING in Rider Profile: {driver.name} (ID: {driver.id}) (Distance: {dist:.1f}m)", flush=True)
+            logger.info(f"Searching for drivers in phase '{phase}' for Ride #{ride_id} in {radius}m radius...")
             
-            dispatch = RideDispatch.objects.create(
-                ride=ride,
-                driver=driver,
-                status='offered'
-            )
+            # Get rejected drivers list
+            rejected_ids = [x.strip() for x in ride.rejected_drivers.split(',') if x.strip()]
 
-            # Wait 15 seconds for driver to accept or reject
-            accepted = False
-            rejected = False
-            for second in range(15):
-                time.sleep(1)
-                
-                # Check ride status
-                ride.refresh_from_db()
-                if ride.status == 'accepted':
-                    # Driver accepted!
-                    dispatch.status = 'accepted'
-                    dispatch.save(update_fields=['status'])
-                    accepted = True
-                    print(f"[RIDE DISPATCH] Rider {driver.name} (ID: {driver.id}) ACCEPTED Ride #{ride_id}!", flush=True)
-                    break
-                elif ride.status == 'cancelled':
-                    dispatch.status = 'cancelled'
-                    dispatch.save(update_fields=['status'])
-                    print(f"[RIDE DISPATCH] Ride #{ride_id} was CANCELLED by customer.", flush=True)
-                    break
-                
-                # Check if driver manually rejected the ride
-                rejected_ids = [x.strip() for x in ride.rejected_drivers.split(',') if x.strip()]
+            # Query online, active, verified, available captains
+            filter_kwargs = {
+                'role': 'driver',
+                'online': True,
+                'can_go_online': True,
+                'kyc_status': 'VERIFIED',
+                'account_status': 'ACCOUNT_ACTIVE',
+                'is_available': True
+            }
+            online_drivers = UserProfile.objects.filter(**filter_kwargs)
+
+            eligible_candidates = []
+            for driver in online_drivers:
                 if str(driver.id) in rejected_ids:
-                    dispatch.status = 'rejected'
-                    dispatch.save(update_fields=['status'])
-                    rejected = True
-                    print(f"[RIDE DISPATCH] Rider {driver.name} (ID: {driver.id}) REJECTED Ride #{ride_id}!", flush=True)
-                    break
-            
-            if accepted:
-                logger.info(f"Ride #{ride_id} successfully accepted by Driver {driver.name} (ID: {driver.id}).")
-                return {"status": "success", "driver_id": driver.id}
-            
-            # If not accepted, mark as timeout and add to rejected drivers list
-            dispatch.refresh_from_db()
-            if dispatch.status == 'offered':
-                dispatch.status = 'timeout'
-                dispatch.save(update_fields=['status'])
-                print(f"[RIDE DISPATCH] Rider {driver.name} (ID: {driver.id}) offer TIMED OUT for Ride #{ride_id}.", flush=True)
+                    continue
+                if not is_rider_eligible_for_matching(driver):
+                    continue
                 
-                # Add to rejected list so they aren't matched again in next cycles
-                rejected_ids = [x.strip() for x in ride.rejected_drivers.split(',') if x.strip()]
-                if str(driver.id) not in rejected_ids:
-                    rejected_ids.append(str(driver.id))
-                    ride.rejected_drivers = ','.join(rejected_ids)
-                    ride.last_rejected_at = int(time.time())
-                    ride.save(update_fields=['rejected_drivers', 'last_rejected_at'])
+                # Check vehicle type matches ride requested vehicle type (Flow 1)
+                r_vehicle_type = ride.vehicle_type.lower()
+                if 'bike' in r_vehicle_type:
+                    r_type = 'bike'
+                elif 'auto' in r_vehicle_type:
+                    r_type = 'auto'
+                else:
+                    r_type = r_vehicle_type
 
-        logger.info(f"All drivers in {radius}m radius rejected or timed out. Moving to next search radius.")
+                has_matching_vehicle = driver.vehicles.filter(approved=True, vehicle_type__iexact=r_type).exists()
+                if not has_matching_vehicle:
+                    continue
+
+                # Check if active vehicle type matches
+                if driver.active_vehicle_type and driver.active_vehicle_type.lower() != r_type:
+                    continue
+
+                # Filter by phase for Women Safety (Flow 2)
+                if phase == 'female':
+                    if getattr(driver, 'gender', '').lower() != 'female':
+                        continue
+                elif phase == 'verified':
+                    is_verified = getattr(driver, 'women_safety_verified', False) or getattr(driver, 'women_priority_match', False)
+                    if not is_verified:
+                        continue
+
+                # Calculate distance
+                dist = haversine_distance(
+                    customer.current_latitude, customer.current_longitude,
+                    driver.current_latitude, driver.current_longitude
+                )
+                if dist is None:
+                    # Mock default distance if location is not set
+                    dist = 300 + ((driver.id * 17 + ride.id * 31) % 2000)
+                    
+                if dist <= radius:
+                    eligible_candidates.append((driver, dist))
+
+            if not eligible_candidates:
+                logger.info(f"No eligible drivers found in phase '{phase}' in {radius}m radius.")
+                continue
+
+            # Sort candidates by distance (nearest first)
+            eligible_candidates.sort(key=lambda x: x[1])
+
+            # Record this matching attempt
+            attempt = MatchingAttempt.objects.create(ride=ride, radius=radius)
+            attempt.drivers_considered.set([c[0] for c in eligible_candidates])
+            
+            # Sequentially offer the ride to each candidate
+            for driver, dist in eligible_candidates:
+                # Recheck if ride has been accepted/cancelled
+                ride.refresh_from_db()
+                if ride.status not in ['pending', 'requested', 'MATCHING_PENDING']:
+                    logger.info(f"Ride #{ride_id} is no longer pending/requested/matching. Exiting dispatch loop.")
+                    return {"status": "success", "message": f"Ride status: {ride.status}"}
+
+                logger.info(f"Offering Ride #{ride_id} to Driver {driver.name} (ID: {driver.id}) at distance {dist:.1f}m (Phase: {phase})")
+                print(f"\n[RIDE DISPATCH] Ride #{ride_id} request is now SHOWING in Rider Profile: {driver.name} (ID: {driver.id}) (Distance: {dist:.1f}m) (Phase: {phase})", flush=True)
+                
+                dispatch = RideDispatch.objects.create(
+                    ride=ride,
+                    driver=driver,
+                    status='offered'
+                )
+
+                # Wait 15 seconds for driver to accept or reject
+                accepted = False
+                rejected = False
+                for second in range(15):
+                    time.sleep(1)
+                    
+                    # Check ride status
+                    ride.refresh_from_db()
+                    if ride.status == 'accepted':
+                        # Driver accepted!
+                        dispatch.status = 'accepted'
+                        dispatch.save(update_fields=['status'])
+                        accepted = True
+                        print(f"[RIDE DISPATCH] Rider {driver.name} (ID: {driver.id}) ACCEPTED Ride #{ride_id}!", flush=True)
+                        break
+                    elif ride.status == 'cancelled':
+                        dispatch.status = 'cancelled'
+                        dispatch.save(update_fields=['status'])
+                        print(f"[RIDE DISPATCH] Ride #{ride_id} was CANCELLED by customer.", flush=True)
+                        break
+                    
+                    # Check if driver manually rejected the ride
+                    rejected_ids = [x.strip() for x in ride.rejected_drivers.split(',') if x.strip()]
+                    if str(driver.id) in rejected_ids:
+                        dispatch.status = 'rejected'
+                        dispatch.save(update_fields=['status'])
+                        rejected = True
+                        print(f"[RIDE DISPATCH] Rider {driver.name} (ID: {driver.id}) REJECTED Ride #{ride_id}!", flush=True)
+                        break
+                
+                if accepted:
+                    logger.info(f"Ride #{ride_id} successfully accepted by Driver {driver.name} (ID: {driver.id}).")
+                    return {"status": "success", "driver_id": driver.id}
+                
+                # If not accepted, mark as timeout and add to rejected drivers list
+                dispatch.refresh_from_db()
+                if dispatch.status == 'offered':
+                    dispatch.status = 'timeout'
+                    dispatch.save(update_fields=['status'])
+                    print(f"[RIDE DISPATCH] Rider {driver.name} (ID: {driver.id}) offer TIMED OUT for Ride #{ride_id}.", flush=True)
+                    
+                    # Add to rejected list so they aren't matched again in next cycles
+                    rejected_ids = [x.strip() for x in ride.rejected_drivers.split(',') if x.strip()]
+                    if str(driver.id) not in rejected_ids:
+                        rejected_ids.append(str(driver.id))
+                        ride.rejected_drivers = ','.join(rejected_ids)
+                        ride.last_rejected_at = int(time.time())
+                        ride.save(update_fields=['rejected_drivers', 'last_rejected_at'])
+
+            logger.info(f"All drivers in phase '{phase}' in {radius}m radius rejected or timed out. Moving to next search radius.")
+            
     ride.refresh_from_db()
     if ride.status in ['pending', 'requested', 'MATCHING_PENDING']:
         ride.status = 'cancelled'

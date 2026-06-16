@@ -350,7 +350,15 @@ function Account() {
                 <p className="text-[10px] text-muted-foreground">Prioritizes high safety routing and female rider matching</p>
               </div>
               <button
-                onClick={() => store.setWomenSafetyMode(!womenSafetyMode)}
+                onClick={() => {
+                  if (!womenSafetyMode) {
+                    if (profile.gender?.toLowerCase() !== "female") {
+                      alert("Women Safety Mode can only be activated for female gender profiles.");
+                      return;
+                    }
+                  }
+                  store.setWomenSafetyMode(!womenSafetyMode);
+                }}
                 className={`relative inline-flex h-5 w-10 items-center rounded-full transition ${womenSafetyMode ? "bg-primary" : "bg-muted"}`}
               >
                 <span className={`inline-block size-4 transform rounded-full bg-background shadow transition ${womenSafetyMode ? "translate-x-5" : "translate-x-0.5"}`} />

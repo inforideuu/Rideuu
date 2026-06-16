@@ -375,8 +375,8 @@ export const store = {
     if (active) {
       const state = store.getState();
       const userGender = state.profile.gender || "male";
-      if (userGender !== "female" && userGender !== "others") {
-        alert("Women Safety Mode can only be activated for female or others gender profiles.");
+      if (userGender.toLowerCase() !== "female") {
+        alert("Women Safety Mode can only be activated for female gender profiles.");
         return;
       }
     }

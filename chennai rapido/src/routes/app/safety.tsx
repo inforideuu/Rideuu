@@ -289,8 +289,8 @@ function Safety() {
           <button
             onClick={() => {
               if (!womenSafetyMode) {
-                if (profile.gender !== "female" && profile.gender !== "others") {
-                  alert("Women Safety Mode can only be activated for female or others gender profiles.");
+                if (profile.gender?.toLowerCase() !== "female") {
+                  alert("Women Safety Mode can only be activated for female gender profiles.");
                   return;
                 }
               }

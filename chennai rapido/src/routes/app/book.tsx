@@ -174,14 +174,16 @@ function Book() {
   }, [searchQuery]);
   const getVehiclePrice = (vKey: "bike" | "auto") => {
     let price = 0;
+    let usingFallback = false;
     if (estimates && estimates[vKey]) {
       price = estimates[vKey][selectedBidTier];
     } else {
       const std = vKey === "bike" ? 45 : 82;
       const multiplier = selectedBidTier === "economy" ? 0.92 : selectedBidTier === "priority" ? 1.12 : 1.0;
       price = Math.round(std * multiplier);
+      usingFallback = true;
     }
-    if (couponDiscount) {
+    if (usingFallback && couponDiscount) {
       const disc = couponDiscount.type === "percentage" ? (price * (couponDiscount.value / 100)) : couponDiscount.value;
       price = Math.max(vKey === "bike" ? 15 : 25, Math.round(price - disc));
     }
@@ -216,6 +218,31 @@ function Book() {
   const t = (key: string) => translate(key, language);
 
   const proceedConfirmRide = (isWomenSafetyMatch: boolean) => {
+    let discountAmount = 0;
+    if (couponDiscount) {
+      let originalPrice = 0;
+      if (estimates && estimates[selectedVehicle]) {
+        const discountedPrice = estimates[selectedVehicle][selectedBidTier];
+        if (couponDiscount.type === "percentage") {
+          const pct = couponDiscount.value;
+          if (pct < 100) {
+            originalPrice = discountedPrice / (1 - pct / 100);
+          } else {
+            originalPrice = discountedPrice;
+          }
+        } else {
+          originalPrice = discountedPrice + couponDiscount.value;
+        }
+      } else {
+        const std = selectedVehicle === "bike" ? 45 : 82;
+        const multiplier = selectedBidTier === "economy" ? 0.92 : selectedBidTier === "priority" ? 1.12 : 1.0;
+        originalPrice = Math.round(std * multiplier);
+      }
+      discountAmount = couponDiscount.type === "percentage"
+        ? Math.round(originalPrice * (couponDiscount.value / 100))
+        : couponDiscount.value;
+    }
+
     // Save state to store
     store.update((s) => {
       s.ride.pickup = pickup;
@@ -227,7 +254,7 @@ function Book() {
       s.ride.basePrice = baseRate;
       s.ride.negotiatedPrice = finalCost;
       s.ride.couponCode = couponAppliedCode;
-      s.ride.discount = 0; // Handled directly in finalCost from backend
+      s.ride.discount = discountAmount;
       s.ride.surgeApplied = !womenSafetyMode;
     });
 

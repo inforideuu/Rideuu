@@ -53,8 +53,10 @@ function Track() {
   const platformFee = ride.vehicle === "bike" ? 3 : 5;
   const isSurge = ride.surgeApplied;
   const totalFare = ride.negotiatedPrice;
-  const baseRidePrice = isSurge ? Math.round((totalFare - platformFee) / 1.2) : totalFare - platformFee;
-  const surgeAmt = isSurge ? totalFare - baseRidePrice - platformFee : 0;
+  const discount = ride.discount || 0;
+  const undiscountedTotal = totalFare + discount;
+  const baseRidePrice = isSurge ? Math.round((undiscountedTotal - platformFee) / 1.2) : undiscountedTotal - platformFee;
+  const surgeAmt = isSurge ? undiscountedTotal - baseRidePrice - platformFee : 0;
 
   useEffect(() => {
     let active = true;

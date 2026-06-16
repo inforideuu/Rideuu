@@ -74,7 +74,7 @@ function Offers() {
     }, 2000);
   };
 
-  const handleBuyPass = (id: string, price: number, name: string) => {
+  const handleBuyPass = async (id: string, price: number, name: string) => {
     if (wallet.balance < price) {
       alert("Insufficient Namma Cash balance! Please recharge your wallet first.");
       return;
@@ -82,32 +82,55 @@ function Offers() {
 
     setPurchasingPass(id);
 
-    // Simulate buying pass (1.5 seconds)
-    setTimeout(() => {
-      setPurchasingPass(null);
-      setPurchaseSuccess(true);
-
-      // Deduct balance and update subscription in store
-      store.update((s) => {
-        s.wallet.balance -= price;
-        s.wallet.hasSubscribedPass = true;
-        s.wallet.passType = name;
-        s.transactions.unshift({
-          id: "txn_" + Date.now(),
+    try {
+      const token = store.getState().token;
+      const email = store.getState().profile.email;
+      const phone = store.getState().profile.phone;
+      const userName = store.getState().profile.name;
+      
+      let dbUser = null;
+      if (email) {
+        dbUser = await api.getUserByEmail(email, "customer", userName, phone);
+      }
+      
+      if (dbUser) {
+        const nextBalance = Math.max(0, dbUser.wallet_balance - price);
+        await api.updateUser(dbUser.id, { wallet_balance: nextBalance }, token || undefined);
+        await api.createTransaction({
+          user: dbUser.id,
           title: `Purchased: ${name}`,
-          tamilTitle: `சந்தா வாங்கப்பட்டது: ${name}`,
-          date: "Just now",
-          amount: price,
-          type: "out"
+          amount: `-₹${price}.00`,
+          date: "Today · " + new Date().toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" }),
+          positive: false,
+          status: "paid"
         });
+      }
+    } catch (err) {
+      console.warn("Failed syncing subscription pass purchase to backend database:", err);
+    }
+
+    setPurchasingPass(null);
+    setPurchaseSuccess(true);
+
+    // Deduct balance and update subscription in store
+    store.update((s) => {
+      s.wallet.balance = Math.max(0, s.wallet.balance - price);
+      s.wallet.hasSubscribedPass = true;
+      s.wallet.passType = name;
+      s.transactions.unshift({
+        id: "txn_" + Date.now(),
+        title: `Purchased: ${name}`,
+        tamilTitle: `சந்தா வாங்கப்பட்டது: ${name}`,
+        date: "Just now",
+        amount: price,
+        type: "out"
       });
+    });
 
-      // Clear success overlay in 2 seconds
-      setTimeout(() => {
-        setPurchaseSuccess(false);
-      }, 2000);
-
-    }, 1500);
+    // Clear success overlay in 2 seconds
+    setTimeout(() => {
+      setPurchaseSuccess(false);
+    }, 2000);
   };
 
   return (
@@ -133,22 +156,26 @@ function Offers() {
           </div>
 
           <p className="text-[10px] text-muted-foreground leading-normal">
-            Take 5 rides this week to earn an instant ₹50 cashback in Namma Cash. <strong>3/5 completed</strong>.
+            Take 5 rides this week to earn an instant ₹50 cashback in Namma Cash. <strong>{wallet.rideStreak || 0}/5 completed</strong>.
           </p>
 
           {/* Progress bar */}
           <div className="space-y-1">
             <div className="flex justify-between text-[9px] text-muted-foreground font-bold">
-              <span>3 Rides taken</span>
-              <span>2 remaining</span>
+              <span>{wallet.rideStreak || 0} { (wallet.rideStreak || 0) === 1 ? "Ride" : "Rides" } taken</span>
+              <span>{Math.max(0, 5 - (wallet.rideStreak || 0))} remaining</span>
             </div>
             <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-              <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: "60%" }} />
+              <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${Math.min(100, ((wallet.rideStreak || 0) / 5) * 100)}%` }} />
             </div>
           </div>
 
           <div className="text-[9px] text-primary/80 font-bold text-center">
-            ✓ You're just 2 rides away from Pongal bonus cashback!
+            { (wallet.rideStreak || 0) >= 5 ? (
+              "✓ Congratulations! You've completed your weekly ride streak and earned your cashback!"
+            ) : (
+              `✓ You're just ${Math.max(0, 5 - (wallet.rideStreak || 0))} ${Math.max(0, 5 - (wallet.rideStreak || 0)) === 1 ? "ride" : "rides"} away from Pongal bonus cashback!`
+            )}
           </div>
         </div>
       </section>
