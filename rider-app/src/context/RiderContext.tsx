@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { translations } from "../lib/translations";
-import { api } from "../lib/api";
+import { api, BASE_URL } from "../lib/api";
 
 export type Language = "en" | "ta";
 export type Theme = "light" | "dark";
@@ -640,7 +640,7 @@ export const RiderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (driver && driver.online !== online) {
         if (online) {
           // Verify with Django perform_update validation
-          const url = `http://localhost:8000/api/users/${driver.id}/`;
+          const url = `${BASE_URL}/users/${driver.id}/`;
           const response = await fetch(url, {
             method: "PATCH",
             headers: { 

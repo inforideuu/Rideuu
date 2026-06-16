@@ -4,7 +4,7 @@ import { Logo } from "@/components/rider/Logo";
 import { ArrowRight, Phone, Mail, Shield, Sparkles, Globe, Fingerprint, RefreshCw, UserCheck, Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRider } from "../context/RiderContext";
-import { api } from "../lib/api";
+import { api, BASE_URL } from "../lib/api";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Rider Login — Rideuu" }] }),
@@ -61,7 +61,7 @@ function LoginPage() {
     try {
       const action = isRegistering ? "register" : "login";
       // We need to fetch directly to handle raw error response body since api.ts fetchAPI catches errors and returns null
-      const url = `http://localhost:8000/api/auth/send-otp/`;
+      const url = `${BASE_URL}/auth/send-otp/`;
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
