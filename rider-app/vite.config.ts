@@ -7,6 +7,11 @@ export default defineConfig({
     server: { entry: "server" },
   },
   nitro: {
-    preset: "vercel"
+    preset: "vercel",
+    output: {
+      dir: ".vercel/output",
+      serverDir: ".vercel/output/functions/index.func",
+      publicDir: ".vercel/output/static"
+    }
   }
 });
