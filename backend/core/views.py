@@ -2372,7 +2372,8 @@ class SendOTPView(APIView):
             OTPVerification.objects.filter(email=email_clean).delete()
             otp_record = OTPVerification.objects.create(email=email_clean, otp=otp_code)
             print(f"[AUTH SendOTP] Generated OTP {otp_code} for email {email_clean}", flush=True)
-            send_email_otp(email_clean, otp_code)
+            import threading
+            threading.Thread(target=send_email_otp, args=(email_clean, otp_code), daemon=True).start()
             return Response({'success': True, 'otp': otp_code, 'email': email_clean})
         except Exception as e:
             import traceback
