@@ -1,4 +1,13 @@
-export const BASE_URL = "http://localhost:8000/api";
+// Detect if we are running in production
+const getBaseUrl = () => {
+  const isProd = import.meta.env.PROD;
+  if (isProd) {
+    return "https://rideuu-backend.onrender.com/api";
+  }
+  return "http://localhost:8000/api";
+};
+
+export const BASE_URL = getBaseUrl();
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const url = `${BASE_URL}${endpoint}`;

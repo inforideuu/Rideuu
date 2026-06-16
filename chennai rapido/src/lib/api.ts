@@ -1,5 +1,11 @@
-// Detect if we are running in a native mobile environment (Capacitor)
+// Detect if we are running in a native mobile environment (Capacitor) or production
 const getBaseUrl = () => {
+  // If Vite compiles the build for production (e.g. Vercel deployment or production APK)
+  const isProd = import.meta.env.PROD;
+  if (isProd) {
+    return "https://rideuu-backend.onrender.com/api";
+  }
+
   if (typeof window !== "undefined") {
     const isNative = (window as any).Capacitor || window.location.href.includes("android-asset");
     if (isNative) {
