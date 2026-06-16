@@ -48,7 +48,7 @@ const htmlContent = `<!DOCTYPE html>
     // In Capacitor, redirect to the hosted server URL.
     // If running in local dev/testing, default to the local machine ip/localhost.
     // Replace with your actual live production URL when deploying.
-    const LIVE_URL = "http://10.0.2.2:3000"; // Fallback to local machine dev port for Android Emulator
+    const LIVE_URL = "https://rideuu-riderapp.vercel.app"; // Replace with live production URL when deploying.
     window.location.href = LIVE_URL;
   </script>
 </head>
