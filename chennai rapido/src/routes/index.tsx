@@ -130,13 +130,9 @@ function Landing() {
 
       {/* Navigation Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 gap-2">
           <Link to="/" className="flex items-center gap-2">
-            <img src="./ridu_logo.png" alt="Rideuu" height={150} width={150} />
-            {/* <span className="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground font-extrabold shadow-md shadow-primary/20 transition-colors">N</span> */}
-            {/* <span className="text-lg font-extrabold tracking-tight">
-              Namma<span className="text-primary">Ride</span>
-            </span> */}
+            <img src="./ridu_logo.png" alt="Rideuu" className="h-8 sm:h-12 w-auto object-contain" />
           </Link>
 
           <nav className="hidden items-center gap-6 text-xs font-bold uppercase tracking-wider text-muted-foreground md:flex">
@@ -145,28 +141,30 @@ function Landing() {
             <a href="#download" className="hover:text-primary transition-colors">Get the App</a>
           </nav>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Quick switches */}
             <button
               onClick={() => store.setLanguage(language === "en" ? "ta" : "en")}
-              className="rounded-full border border-border bg-card px-2.5 py-1 text-[10px] font-bold shadow-sm transition hover:bg-muted"
+              className="rounded-full border border-border bg-card px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-bold shadow-sm transition hover:bg-muted"
             >
               {language === "en" ? "தமிழ்" : "EN"}
             </button>
 
             <button
               onClick={() => store.setTheme(theme === "dark" ? "light" : "dark")}
-              className="grid size-8 place-items-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground transition shadow-sm"
+              className="grid size-7 sm:size-8 place-items-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground transition shadow-sm"
               aria-label="Toggle theme"
             >
-              {theme === "dark" ? <Sun className="size-4 text-amber-500" /> : <Moon className="size-4" />}
+              {theme === "dark" ? <Sun className="size-3.5 sm:size-4 text-amber-500" /> : <Moon className="size-3.5 sm:size-4" />}
             </button>
 
             <Link
               to="/app/home"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-extrabold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-105 active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-extrabold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-105 active:scale-[0.98]"
             >
-              {language === "en" ? "Book a Ride" : "சவாரி செய்"} <ArrowRight className="size-3.5" />
+              <span className="hidden sm:inline">{language === "en" ? "Book a Ride" : "சவாரி செய்"}</span>
+              <span className="sm:hidden">{language === "en" ? "Book" : "சவாரி"}</span>
+              <ArrowRight className="size-3 sm:size-3.5" />
             </Link>
           </div>
         </div>
@@ -174,17 +172,17 @@ function Landing() {
 
       {/* PWA Install Banner */}
       {showBanner && !isStandalone && (
-        <div className="bg-primary/10 border-b border-primary/20 p-4 text-xs font-semibold">
-          <div className="mx-auto max-w-6xl flex items-center justify-between gap-4 px-4">
+        <div className="bg-primary/10 border-b border-primary/20 p-3 sm:p-4 text-xs font-semibold">
+          <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-3 px-4">
             <div className="flex items-center gap-3">
               <div className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground shrink-0 shadow shadow-primary/20">
                 <Smartphone className="size-5" />
               </div>
               <div className="text-left">
-                <h3 className="font-extrabold text-foreground">
+                <h3 className="font-extrabold text-foreground text-xs sm:text-sm">
                   {language === "en" ? "Install Rideuu App" : "நம்ம ரைடு செயலியை நிறுவவும்"}
                 </h3>
-                <p className="text-[10px] text-muted-foreground mt-0.5 leading-normal">
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 leading-normal">
                   {language === "en" 
                     ? "Add to home screen for 1-tap offline ride booking and safe routes"
                     : "ஆஃப்லைன் சவாரி முன்பதிவுக்கு முகப்புத் திரையில் சேர்க்கவும்"}
@@ -192,14 +190,14 @@ function Landing() {
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
               <button 
                 onClick={handleInstallPwa}
-                className="rounded-xl bg-primary px-4 py-2 text-[10px] font-black text-primary-foreground shadow flex items-center gap-1 hover:brightness-105 active:scale-95 transition cursor-pointer"
+                className="rounded-xl bg-primary px-3.5 py-1.5 sm:px-4 sm:py-2 text-[10px] font-black text-primary-foreground shadow flex items-center gap-1 hover:brightness-105 active:scale-95 transition cursor-pointer"
               >
                 <Download className="size-3" /> {language === "en" ? "Install" : "நிறுவவும்"}
               </button>
-              <button onClick={() => setShowBanner(false)} className="text-muted-foreground hover:text-foreground cursor-pointer">
+              <button onClick={() => setShowBanner(false)} className="text-muted-foreground hover:text-foreground cursor-pointer p-1">
                 <X className="size-4" />
               </button>
             </div>
@@ -234,14 +232,14 @@ function Landing() {
               <span className="size-1.5 rounded-full bg-primary" />
               வணக்கம் Chennai · Welcome to Rideuu
             </span>
-            <h1 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-tight text-balance md:text-6xl text-white">
+            <h1 className="mt-5 text-3xl sm:text-4xl font-extrabold leading-[1.1] tracking-tight text-balance md:text-6xl text-white">
               {language === "en" ? (
                 <>Fast & affordable<br /><span className="text-primary">bike & auto</span> rides.</>
               ) : (
                 <>வேகமான மற்றும் மலிவான<br /><span className="text-primary font-tamil">பைக் & ஆட்டோ</span> சவாரிகள்.</>
               )}
             </h1>
-            <p className="mt-5 max-w-lg text-sm text-white/80 md:text-base leading-relaxed">
+            <p className="mt-5 max-w-lg text-xs sm:text-sm text-white/80 md:text-base leading-relaxed">
               {language === "en"
                 ? "Rideuu is Chennai-first. Tamil voice booking, women safety mode, flood-aware routing and zero surge surprises — built for our city."
                 : "நம்ம ரைடு சென்னைக்கானது. தமிழ் குரல் பதிவு, பெண்கள் பாதுகாப்பு பயன்முறை, வெள்ள அபாய வழித்தடங்கள் மற்றும் கூடுதல் கட்டணங்கள் இல்லை."}
@@ -250,13 +248,13 @@ function Landing() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 to="/app/home"
-                className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-xs font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-105"
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 sm:px-6 sm:py-3.5 text-xs font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-105"
               >
                 {language === "en" ? "Launch Web App" : "செயலியைத் தொடங்கு"} <ArrowRight className="size-4" />
               </Link>
               <a
                 href="#how"
-                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 backdrop-blur-xs px-6 py-3.5 text-xs font-bold text-white transition hover:bg-white/15"
+                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 backdrop-blur-xs px-5 py-3 sm:px-6 sm:py-3.5 text-xs font-bold text-white transition hover:bg-white/15"
               >
                 {language === "en" ? "How it works" : "எப்படி செயல்படுகிறது"}
               </a>
@@ -270,16 +268,16 @@ function Landing() {
           </div>
 
           {/* Premium UI Mockup Card */}
-          <div className="relative mx-auto w-full max-w-sm float-card">
+          <div className="relative mx-auto w-full max-w-[320px] xs:max-w-sm float-card">
             <div className="absolute -inset-6 rounded-[40px] bg-primary/10 blur-3xl" />
             <div className="relative rounded-[36px] border border-white/10 bg-background/90 backdrop-blur-md p-3 text-foreground shadow-2xl">
               <div className="overflow-hidden rounded-[28px]">
-                <div className={`map-grid relative h-72 ${theme === "dark" ? "map-grid-dark" : "map-grid"}`}>
+                <div className={`map-grid relative h-64 sm:h-72 ${theme === "dark" ? "map-grid-dark" : "map-grid"}`}>
                   {/* Glowing dynamic route overlays */}
                   <div className="absolute left-[30%] top-[40%] size-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/30" />
                   <div className="absolute left-[65%] top-[60%] size-2.5 rounded-full bg-primary ring-4 ring-primary/30" />
                   <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full opacity-70">
-                    <path d="M 60 80 Q 90 100, 130 120" stroke="oklch(0.65 0.25 140)" strokeWidth="3" fill="none" strokeDasharray="5 4" />
+                    <path d="M 60 80 Q 90 100, 130 120" stroke="oklch(0.65 0.25 140)" strokeWidth="3" fill="none" stroke-dasharray="5 4" />
                   </svg>
                   <div className="absolute right-4 top-4 rounded-full bg-card/95 px-2.5 py-1 text-[9px] font-bold shadow-md border border-border">
                     12 riders nearby
@@ -289,7 +287,7 @@ function Landing() {
                     <span className="size-1.5 rounded-full bg-blue-500 animate-ping" /> Safe Routing Active
                   </div>
                 </div>
-                <div className="space-y-3 bg-card p-4 border-t border-border">
+                <div className="space-y-3 bg-card p-3 sm:p-4 border-t border-border">
                   <div className="rounded-2xl border border-border p-3 space-y-2.5 text-xs font-semibold bg-muted/30">
                     <div className="flex items-center gap-2">
                       <div className="size-2 rounded-full bg-emerald-500" />
