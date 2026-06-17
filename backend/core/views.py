@@ -2302,8 +2302,10 @@ from email.mime.multipart import MIMEMultipart
 
 def send_email_otp(to_email, otp_code):
     try:
-        from_email = "info.rideuu@gmail.com"
-        app_password = "lxilgubdjjolpwer"
+        from_email = os.environ.get("SMTP_USER", "info.rideuu@gmail.com")
+        app_password = os.environ.get("SMTP_PASSWORD", "lxilgubdjjolpwer")
+        smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+        smtp_port = int(os.environ.get("SMTP_PORT", "587"))
         
         msg = MIMEMultipart()
         msg['From'] = from_email
@@ -2327,16 +2329,20 @@ def send_email_otp(to_email, otp_code):
         """
         msg.attach(MIMEText(body, 'html'))
         
-        server = smtplib.SMTP("smtp.gmail.com", 587, timeout=3.0)
+        server = smtplib.SMTP(smtp_host, smtp_port, timeout=10.0)
+        server.ehlo()
         server.starttls()
+        server.ehlo()
         server.login(from_email, app_password)
         server.sendmail(from_email, to_email, msg.as_string())
         server.quit()
         print(f"[SMTP SUCCESS] Sent OTP {otp_code} to {to_email}", flush=True)
         return True
     except Exception as e:
-        print(f"[SMTP ERROR] Failed to send email to {to_email}: {e}", flush=True)
+        import traceback
+        print(f"[SMTP ERROR] Failed to send email to {to_email}: {e}\n{traceback.format_exc()}", flush=True)
         return False
+
 
 from django.contrib.auth.hashers import make_password, check_password
 import random
