@@ -2302,6 +2302,7 @@ from email.mime.multipart import MIMEMultipart
 
 def send_email_otp(to_email, otp_code):
     try:
+        import os
         smtp_user = os.environ.get("SMTP_USER", "info.rideuu@gmail.com")
         from_email = os.environ.get("SMTP_FROM", smtp_user)
         app_password = os.environ.get("SMTP_PASSWORD", "lxilgubdjjolpwer")
