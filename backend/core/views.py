@@ -2339,10 +2339,44 @@ def send_email_otp(to_email, otp_code):
         server.sendmail(from_email, to_email, msg.as_string())
         server.quit()
         print(f"[SMTP SUCCESS] Sent OTP {otp_code} to {to_email}", flush=True)
+        
+        try:
+            from .models import SystemSetting
+            from django.utils import timezone
+            SystemSetting.objects.update_or_create(
+                key='last_smtp_status',
+                defaults={'value': {
+                    'status': 'SUCCESS',
+                    'message': f"Sent OTP {otp_code} to {to_email}",
+                    'to_email': to_email,
+                    'timestamp': str(timezone.now())
+                }}
+            )
+        except Exception as db_err:
+            print(f"[SMTP DB LOG ERROR] {db_err}", flush=True)
+            
         return True
     except Exception as e:
         import traceback
-        print(f"[SMTP ERROR] Failed to send email to {to_email}: {e}\n{traceback.format_exc()}", flush=True)
+        err_msg = f"Failed to send email to {to_email}: {e}\n{traceback.format_exc()}"
+        print(f"[SMTP ERROR] {err_msg}", flush=True)
+        
+        try:
+            from .models import SystemSetting
+            from django.utils import timezone
+            SystemSetting.objects.update_or_create(
+                key='last_smtp_status',
+                defaults={'value': {
+                    'status': 'ERROR',
+                    'message': str(e),
+                    'traceback': traceback.format_exc(),
+                    'to_email': to_email,
+                    'timestamp': str(timezone.now())
+                }}
+            )
+        except Exception as db_err:
+            print(f"[SMTP DB LOG ERROR] {db_err}", flush=True)
+            
         return False
 
 
