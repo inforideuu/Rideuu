@@ -10,10 +10,25 @@ export const Route = createFileRoute("/login")({
 });
 
 function Login() {
-  const { language, theme, deviceSessions } = useAppStore();
+  const { language, theme, deviceSessions, isPwaInstalled } = useAppStore();
   const navigate = useNavigate();
+  const [isStandalone, setIsStandalone] = useState(false);
 
-  const [authMethod, setAuthMethod] = useState<"phone" | "email">("email");
+  useEffect(() => {
+    const checkStandalone = () => {
+      const isStandaloneMode =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (navigator as any).standalone ||
+        document.referrer.includes('android-app://');
+      setIsStandalone(isStandaloneMode);
+      if (isStandaloneMode) {
+        store.setPwaInstalled(true);
+      }
+    };
+    checkStandalone();
+  }, []);
+
+  const [authMethod, setAuthMethod] = useState<"phone" | "email" | null>(null);
   const [step, setStep] = useState<"phone" | "otp" | "password_login" | "create_profile" | "dashboard">("phone");
   const [emailStep, setEmailStep] = useState<"login" | "verify" | "reset">("login");
 
@@ -75,15 +90,20 @@ function Login() {
   }, [step, countdown]);
 
   const handleSendOtp = async () => {
-    if (!emailAddress) return;
+    const target = authMethod === "phone" ? `${phoneNum}@rideuu.in` : emailAddress;
+    if (!target) return;
     setSendingOtp(true);
-    const res = await api.sendOtp(emailAddress);
+    const res = await api.sendOtp(target);
     setSendingOtp(false);
     if (res && res.success) {
       setStep("otp");
       setCountdown(30);
       setOtp(["", "", "", ""]);
-      alert(`[AUTH EMAIL OTP SENT] Correct Verification Code: ${res.otp}`);
+      if (authMethod === "phone") {
+        alert(`[AUTH MOBILE OTP SENT] Correct Verification Code: ${res.otp}`);
+      } else {
+        alert(`[AUTH EMAIL OTP SENT] Correct Verification Code: ${res.otp}`);
+      }
     } else {
       alert("Failed to send OTP. Please check your network connection.");
     }
@@ -92,7 +112,8 @@ function Login() {
     const enteredOtp = otp.join("");
     if (enteredOtp.length < 4) return;
     setVerifyingOtp(true);
-    const res = await api.verifyOtp(emailAddress, enteredOtp, "customer", "Chennai Commuter", phoneNum);
+    const target = authMethod === "phone" ? `${phoneNum}@rideuu.in` : emailAddress;
+    const res = await api.verifyOtp(target, enteredOtp, "customer", "Chennai Commuter", phoneNum);
     setVerifyingOtp(false);
     if (res && res.token) {
       localStorage.setItem(`namma_biometric_token_${res.user.email}`, res.token);
@@ -361,7 +382,9 @@ function Login() {
           </h1>
           <p className="mt-1 text-xs text-muted-foreground">
             {step === "phone" ? (
-              authMethod === "phone" ? "Enter phone number to receive a secure code." : "Sign in with your email address."
+              authMethod === "phone" ? "Enter phone number to receive a secure code." :
+              authMethod === "email" ? "Sign in with your email address." :
+              "Choose your preferred sign-in method to continue."
             ) : step === "otp" ? (
               `Enter the 4-digit code sent to ${authMethod === "phone" ? `+91 ${phoneNum}` : emailAddress}`
             ) : step === "password_login" ? (
@@ -375,35 +398,112 @@ function Login() {
         {/* Dynamic Auth Forms */}
         {step === "phone" ? (
           <div className="mt-6 space-y-4">
-            <label className="block">
-              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider opacity-70">Email Address</span>
-              <div className="flex items-center gap-2.5 rounded-2xl border border-border/40 bg-background/20 backdrop-blur-md p-3.5 focus-within:border-primary transition">
-                <Mail className="size-4 text-muted-foreground" />
-                <input
-                  type="email"
-                  value={emailAddress}
-                  onChange={(e) => setEmailAddress(e.target.value)}
-                  placeholder="commuter@Rideuu.in"
-                  className="w-full bg-transparent text-sm font-semibold outline-none"
-                />
+            {authMethod === null ? (
+              <div className="space-y-4">
+                <button
+                  onClick={() => setAuthMethod("phone")}
+                  className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border/40 bg-background/20 backdrop-blur-md p-4 font-bold text-sm hover:border-primary hover:bg-background/35 transition text-left cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <Phone className="size-5 text-primary" />
+                    <span>Login with Phone Number</span>
+                  </div>
+                  <ArrowRight className="size-4 text-muted-foreground" />
+                </button>
+
+                <button
+                  onClick={() => setAuthMethod("email")}
+                  className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border/40 bg-background/20 backdrop-blur-md p-4 font-bold text-sm hover:border-primary hover:bg-background/35 transition text-left cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <Mail className="size-5 text-primary" />
+                    <span>Login with Email ID</span>
+                  </div>
+                  <ArrowRight className="size-4 text-muted-foreground" />
+                </button>
               </div>
-            </label>
- 
-            <button
-              onClick={handleSendOtp}
-              disabled={!emailAddress || !emailAddress.includes("@")}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-extrabold text-primary-foreground hover:brightness-105 active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none"
-            >
-              Send OTP <ArrowRight className="size-4" />
-            </button>
- 
-            <button
-              onClick={() => setStep("password_login")}
-              disabled={!emailAddress}
-              className="w-full text-center text-xs font-bold text-primary hover:underline transition disabled:opacity-50"
-            >
-              Log in with Password instead
-            </button>
+            ) : authMethod === "phone" ? (
+              <div className="space-y-4">
+                <label className="block">
+                  <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider opacity-70">Phone Number</span>
+                  <div className="flex items-center gap-2.5 rounded-2xl border border-border/40 bg-background/20 backdrop-blur-md p-3.5 focus-within:border-primary transition">
+                    <Phone className="size-4 text-muted-foreground" />
+                    <span className="text-sm font-extrabold text-foreground">+91</span>
+                    <input
+                      type="tel"
+                      value={phoneNum}
+                      onChange={(e) => setPhoneNum(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      placeholder="98401 23456"
+                      className="w-full bg-transparent text-sm font-semibold outline-none"
+                    />
+                  </div>
+                </label>
+
+                <button
+                  onClick={handleSendOtp}
+                  disabled={phoneNum.length !== 10 || sendingOtp}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-extrabold text-primary-foreground hover:brightness-105 active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  Send OTP <ArrowRight className="size-4" />
+                </button>
+
+                <div className="flex items-center justify-between mt-2">
+                  <button
+                    onClick={() => setAuthMethod(null)}
+                    className="text-xs font-bold text-muted-foreground hover:text-primary transition"
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    onClick={() => setStep("password_login")}
+                    disabled={!phoneNum}
+                    className="text-xs font-bold text-primary hover:underline transition disabled:opacity-50"
+                  >
+                    Log in with Password instead
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <label className="block">
+                  <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider opacity-70">Email Address</span>
+                  <div className="flex items-center gap-2.5 rounded-2xl border border-border/40 bg-background/20 backdrop-blur-md p-3.5 focus-within:border-primary transition">
+                    <Mail className="size-4 text-muted-foreground" />
+                    <input
+                      type="email"
+                      value={emailAddress}
+                      onChange={(e) => setEmailAddress(e.target.value)}
+                      placeholder="commuter@Rideuu.in"
+                      className="w-full bg-transparent text-sm font-semibold outline-none"
+                    />
+                  </div>
+                </label>
+
+                <button
+                  onClick={handleSendOtp}
+                  disabled={!emailAddress || !emailAddress.includes("@") || sendingOtp}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-extrabold text-primary-foreground hover:brightness-105 active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  Send OTP <ArrowRight className="size-4" />
+                </button>
+
+                <div className="flex items-center justify-between mt-2">
+                  <button
+                    onClick={() => setAuthMethod(null)}
+                    className="text-xs font-bold text-muted-foreground hover:text-primary transition"
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    onClick={() => setStep("password_login")}
+                    disabled={!emailAddress}
+                    className="text-xs font-bold text-primary hover:underline transition disabled:opacity-50"
+                  >
+                    Log in with Password instead
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : step === "otp" ? (
           <div className="mt-6 space-y-5">
@@ -554,52 +654,9 @@ function Login() {
           </div>
         )}
 
-        {/* Social login portals */}
-        {step === "phone" && emailStep === "login" && (
-          <div className="mt-6 space-y-4">
-            <div className="flex items-center gap-3 py-2">
-              <div className="h-px flex-1 bg-border/40" />
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Or continue with</span>
-              <div className="h-px flex-1 bg-border/40" />
-            </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setShowConsentModal("Google")}
-                className="flex items-center justify-center gap-2.5 rounded-2xl border border-border/40 bg-background/20 backdrop-blur-md py-3.5 text-xs font-bold hover:bg-muted active:scale-[0.99] transition"
-              >
-                <span className="text-red-500 font-extrabold">G</span> Google
-              </button>
-              <button
-                onClick={() => setShowConsentModal("Apple")}
-                className="flex items-center justify-center gap-2.5 rounded-2xl border border-border/40 bg-background/20 backdrop-blur-md py-3.5 text-xs font-bold hover:bg-muted active:scale-[0.99] transition"
-              >
-                <span className="font-extrabold"></span> Apple
-              </button>
-            </div>
-          </div>
-        )}
 
-        {/* Smart Biometric Configuration Panel */}
-        <div className="mt-8 rounded-2xl border border-border/40 bg-background/20 backdrop-blur-md p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
-                <Fingerprint className="size-5" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-xs font-extrabold">Biometric Login</h3>
-                <p className="text-[10px] text-muted-foreground">Authenticate using FaceID / Fingerprint</p>
-              </div>
-            </div>
-            <button
-              onClick={toggleBiometric}
-              className={`relative inline-flex h-5 w-10 items-center rounded-full transition ${biometricEnabled ? "bg-primary" : "bg-muted"}`}
-            >
-              <span className={`inline-block size-4 transform rounded-full bg-background transition ${biometricEnabled ? "translate-x-5" : "translate-x-0.5"}`} />
-            </button>
-          </div>
-        </div>
+
 
         {/* Multi-device sessions simulator */}
         <div className="mt-4 space-y-2">
@@ -636,34 +693,28 @@ function Login() {
           </ul>
         </div>
 
-        {/* Download options: PWA & Mobile APK */}
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          {deferredPrompt ? (
-            <button
-              onClick={handleInstallPWA}
-              className="py-3.5 rounded-2xl bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 flex items-center justify-center gap-2 font-extrabold text-[11px] text-slate-950 active:scale-[0.98] transition shadow-md shadow-amber-500/10 cursor-pointer"
-            >
-              <Sparkles className="h-4 w-4 text-slate-950 shrink-0" />
-              <span>Install PWA App</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowPwaModal(true)}
-              className="py-3.5 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center gap-2 font-bold text-[11px] hover:bg-primary/20 active:scale-[0.98] transition text-primary cursor-pointer"
-            >
-              <Sparkles className="h-4 w-4 text-primary shrink-0" />
-              <span>Install PWA App</span>
-            </button>
-          )}
-          <a
-            href="/chennai_rapido.apk"
-            download
-            className="py-3.5 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center gap-2 font-bold text-[11px] hover:bg-primary/20 active:scale-[0.98] transition text-primary text-center"
-          >
-            <Download className="h-4 w-4 shrink-0" />
-            <span>Download APK</span>
-          </a>
-        </div>
+        {/* Download options: PWA */}
+        {!isStandalone && !isPwaInstalled && (
+          <div className="mt-4">
+            {deferredPrompt ? (
+              <button
+                onClick={handleInstallPWA}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 flex items-center justify-center gap-2 font-extrabold text-[11px] text-slate-950 active:scale-[0.98] transition shadow-md shadow-amber-500/10 cursor-pointer"
+              >
+                <Sparkles className="h-4 w-4 text-slate-950 shrink-0" />
+                <span>Install PWA App</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowPwaModal(true)}
+                className="w-full py-3.5 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center gap-2 font-bold text-[11px] hover:bg-primary/20 active:scale-[0.98] transition text-primary cursor-pointer"
+              >
+                <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                <span>Install PWA App</span>
+              </button>
+            )}
+          </div>
+        )}
 
         <p className="mt-auto pb-4 pt-8 text-center text-[10px] text-muted-foreground">
           By continuing you agree to Rideuu's <span className="text-primary hover:underline cursor-pointer">Terms of Service</span> & <span className="text-primary hover:underline cursor-pointer">Privacy Policy</span>.

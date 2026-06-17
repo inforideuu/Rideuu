@@ -1,12 +1,12 @@
 // Detect if we are running in a native mobile environment (Capacitor) or production
 const getBaseUrl = () => {
-  // If Vite compiles the build for production (e.g. Vercel deployment or production APK)
-  const isProd = import.meta.env.PROD;
-  if (isProd) {
-    return "https://rideuu-backend.onrender.com/api";
-  }
-
   if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    // If running on Vercel deployment
+    if (hostname && hostname !== "localhost" && hostname !== "127.0.0.1" && !hostname.startsWith("10.0.2.")) {
+      return "https://rideuu-backend.onrender.com/api";
+    }
+
     const isNative = (window as any).Capacitor || window.location.href.includes("android-asset");
     if (isNative) {
       // 10.0.2.2 is the special host loopback address for the Android emulator.
@@ -14,6 +14,12 @@ const getBaseUrl = () => {
       return "http://10.0.2.2:8000/api";
     }
   }
+
+  // Fallback for SSR server-side on Vercel
+  if (typeof process !== "undefined" && process.env.NODE_ENV === "production") {
+    return "https://rideuu-backend.onrender.com/api";
+  }
+
   return "http://localhost:8000/api";
 };
 

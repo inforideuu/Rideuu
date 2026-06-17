@@ -126,6 +126,7 @@ class Ride(models.Model):
     last_rejected_at = models.IntegerField(default=0)
     payment_mode = models.CharField(max_length=20, default='cash')
     women_safety_match = models.BooleanField(default=False)
+    pet_friendly = models.BooleanField(default=False)
 
 
     def __str__(self):

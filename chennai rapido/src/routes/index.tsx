@@ -25,7 +25,7 @@ function Landing() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // PWA states
-  const [showBanner, setShowBanner] = useState(true);
+  const [showBanner, setShowBanner] = useState(!isPwaInstalled);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isStandalone, setIsStandalone] = useState(false);
 
@@ -171,7 +171,7 @@ function Landing() {
       </header>
 
       {/* PWA Install Banner */}
-      {showBanner && !isStandalone && (
+      {showBanner && !isStandalone && !isPwaInstalled && (
         <div className="bg-primary/10 border-b border-primary/20 p-3 sm:p-4 text-xs font-semibold">
           <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-3 px-4">
             <div className="flex items-center gap-3">
@@ -356,33 +356,35 @@ function Landing() {
       </section>
 
       {/* Download Section */}
-      <section id="download" className="relative overflow-hidden bg-primary text-primary-foreground">
-        <div className="absolute inset-0 opacity-[0.06] checkered" />
-        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 px-4 py-16 md:flex-row md:items-center relative z-10">
-          <div>
-            <h3 className="text-2xl font-extrabold tracking-tight md:text-3xl">
-              {language === "en" ? "Ready to explore Chennai with Rideuu?" : "ரைடு மூலம் சவாரி செய்யத் தயாராக இருக்கிறீர்களா?"}
-            </h3>
-            <p className="mt-2 text-xs opacity-90 font-medium">Install Rideuu to your homescreen as an offline-capable PWA instantly.</p>
+      {!isStandalone && !isPwaInstalled && (
+        <section id="download" className="relative overflow-hidden bg-primary text-primary-foreground">
+          <div className="absolute inset-0 opacity-[0.06] checkered" />
+          <div className="mx-auto flex max-w-6xl items-start justify-between gap-8 px-4 py-16 md:flex-row md:items-center relative z-10">
+            <div>
+              <h3 className="text-2xl font-extrabold tracking-tight md:text-3xl">
+                {language === "en" ? "Ready to explore Chennai with Rideuu?" : "ரைடு மூலம் சவாரி செய்யத் தயாராக இருக்கிறீர்களா?"}
+              </h3>
+              <p className="mt-2 text-xs opacity-90 font-medium">Install Rideuu to your homescreen as an offline-capable PWA instantly.</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to="/app/home"
+                className="inline-flex items-center gap-2 rounded-full bg-secondary px-6 py-4 text-xs font-black text-secondary-foreground shadow-xl transition hover:brightness-110 hover:scale-105 active:scale-[0.98]"
+              >
+                {language === "en" ? "Launch Web App" : "செயலியைத் தொடங்கு"} <ArrowRight className="size-4" />
+              </Link>
+              <a
+                href="/chennai_rapido.apk"
+                download
+                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-xs px-6 py-4 text-xs font-black text-white shadow-xl transition hover:bg-white/20 hover:scale-105 active:scale-[0.98]"
+              >
+                <Download className="size-4" /> {language === "en" ? "Download Android APK" : "ஏபிகே பதிவிறக்க"}
+              </a>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/app/home"
-              className="inline-flex items-center gap-2 rounded-full bg-secondary px-6 py-4 text-xs font-black text-secondary-foreground shadow-xl transition hover:brightness-110 hover:scale-105 active:scale-[0.98]"
-            >
-              {language === "en" ? "Launch Web App" : "செயலியைத் தொடங்கு"} <ArrowRight className="size-4" />
-            </Link>
-            <a
-              href="/chennai_rapido.apk"
-              download
-              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-xs px-6 py-4 text-xs font-black text-white shadow-xl transition hover:bg-white/20 hover:scale-105 active:scale-[0.98]"
-            >
-              <Download className="size-4" /> {language === "en" ? "Download Android APK" : "ஏபிகே பதிவிறக்க"}
-            </a>
-          </div>
-        </div>
-        <div className="checkered-sm h-2 w-full" />
-      </section>
+          <div className="checkered-sm h-2 w-full" />
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-border bg-card py-10">

@@ -139,7 +139,7 @@ function OtpPage() {
           {t("enter_otp")}
         </h1>
         <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-          OTP sent to <strong className="text-foreground font-bold">{email || "rider@example.com"}</strong>.{" "}
+          OTP sent to <strong className="text-foreground font-bold">{email && email.includes("@rideuu.in") ? `+91 ${email.split("@")[0]}` : (email || "rider@example.com")}</strong>.{" "}
           <button onClick={() => nav({ to: "/login" })} className="text-primary font-extrabold underline text-[11px] ml-1">
             {t("change")}
           </button>

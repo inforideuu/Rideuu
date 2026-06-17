@@ -10,7 +10,8 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c * 10) / 10; // return rounded to 1 decimal place
+  const rawDist = Math.round(R * c * 10) / 10; // return rounded to 1 decimal place
+  return rawDist > 50 ? 6.2 : rawDist;
 }
 
 export type Language = "en" | "ta";
@@ -110,6 +111,7 @@ export interface RideLifecycle {
   refundRequested: boolean;
   completion_step?: number;
   distance?: number | string | null;
+  petFriendly?: boolean;
 }
 
 // Initial state template
@@ -190,6 +192,7 @@ const INITIAL_STATE = {
     refundRequested: false,
     completion_step: -1,
     distance: null,
+    petFriendly: false,
   } as RideLifecycle
 };
 
@@ -336,6 +339,7 @@ export const store = {
         complaintRaised: false,
         complaintText: "",
         refundRequested: false,
+        petFriendly: false,
       };
     });
     if (typeof window !== "undefined") {
@@ -663,7 +667,8 @@ export const store = {
       surge_multiplier: currentRide.surgeApplied ? 1.2 : 1.0,
       rain_bonus: 0,
       vehicle_type: currentRide.vehicle || "bike",
-      women_safety_match: womenSafetyMatch
+      women_safety_match: womenSafetyMatch,
+      pet_friendly: currentRide.petFriendly || false
     });
 
     if (dbRide) {

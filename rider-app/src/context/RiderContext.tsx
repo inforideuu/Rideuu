@@ -80,6 +80,7 @@ export interface RideRequest {
   payment_mode?: string;
   rating_customer?: number | null;
   rating_driver?: number | null;
+  pet_friendly?: boolean;
 }
 
 export interface ActiveRideState {
@@ -750,6 +751,7 @@ export const RiderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     const interval = setInterval(async () => {
+      if (!phone) return;
       // 1. Check if there is an active ride in progress in Django DB
       const currentActive = await api.getActiveRide(phone, "driver");
       if (currentActive) {
@@ -772,7 +774,8 @@ export const RiderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           vehicle_type: currentActive.vehicle_type,
           payment_mode: currentActive.payment_mode,
           rating_customer: currentActive.rating_customer,
-          rating_driver: currentActive.rating_driver
+          rating_driver: currentActive.rating_driver,
+          pet_friendly: currentActive.pet_friendly
         };
 
         setActiveRide(prev => {
@@ -857,7 +860,8 @@ export const RiderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             vehicle_type: latest.vehicle_type,
             payment_mode: latest.payment_mode,
             rating_customer: latest.rating_customer,
-            rating_driver: latest.rating_driver
+            rating_driver: latest.rating_driver,
+            pet_friendly: latest.pet_friendly
           });
         } else {
           setIncomingRequest(null);

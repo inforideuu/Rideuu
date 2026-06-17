@@ -1,8 +1,10 @@
 // Detect if we are running in production
 const getBaseUrl = () => {
-  const isProd = import.meta.env.PROD;
-  if (isProd) {
-    return "https://rideuu-backend.onrender.com/api";
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname && hostname !== "localhost" && hostname !== "127.0.0.1") {
+      return "https://rideuu-backend.onrender.com/api";
+    }
   }
   return "http://localhost:8000/api";
 };

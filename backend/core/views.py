@@ -125,9 +125,27 @@ def get_session_info(request):
         else:
             device = "Windows Device"
             
-    import random
-    locations = ["Adyar, Chennai", "Besant Nagar, Chennai", "Nungambakkam, Chennai", "T. Nagar, Chennai", "Velachery, Chennai"]
-    loc = random.choice(locations)
+    # Geolocate the IP address
+    loc = "Chennai, India"
+    if ip and ip != '127.0.0.1' and not ip.startswith(('192.168.', '10.', '172.16.', '172.31.')):
+        import urllib.request
+        import json
+        try:
+            url = f"http://ip-api.com/json/{ip}"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=1.5) as response:
+                geo = json.loads(response.read().decode('utf-8'))
+                if geo.get('status') == 'success':
+                    city = geo.get('city')
+                    region = geo.get('regionName')
+                    country = geo.get('country', 'India')
+                    if city and region:
+                        loc = f"{city}, {region}"
+                    elif city:
+                        loc = f"{city}, {country}"
+        except Exception as e:
+            print(f"[IP GEOLOCATE ERROR] {e}", flush=True)
+
     return device, ip, loc
 
 def create_user_session(user, token, request):
@@ -359,23 +377,30 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             return Response({'error': 'phone is required'}, status=status.HTTP_400_BAD_REQUEST)
         
         phone_clean = phone.strip().replace(" ", "")
-        if phone_clean.startswith("+91"):
-            phone_clean = phone_clean[3:]
+        while phone_clean.startswith("+91") or phone_clean.startswith("91") or phone_clean.startswith("+"):
+            if phone_clean.startswith("+91"):
+                phone_clean = phone_clean[3:]
+            elif phone_clean.startswith("91"):
+                phone_clean = phone_clean[2:]
+            elif phone_clean.startswith("+"):
+                phone_clean = phone_clean[1:]
         phone_normalized = "+91 " + phone_clean
 
-        user, created = UserProfile.objects.get_or_create(
-            phone=phone_normalized,
-            defaults={
-                'name': name if name and name != 'Anonymous User' else 'Anonymous User',
-                'role': role,
-                'status': 'active' if role == 'customer' else 'new',
-                'wallet_balance': 0.0,
-                'incentive_balance': 0.0,
-                'bonus_balance': 0.0,
-                'upi_id': f"{name.lower().replace(' ', '.')}@okaxis" if name else "user@okaxis",
-                'bank_account': "State Bank of India ****1234"
-            }
-        )
+        user = UserProfile.objects.filter(phone=phone_normalized).first()
+        created = False
+        if not user:
+            user = UserProfile.objects.create(
+                phone=phone_normalized,
+                name=name if name and name != 'Anonymous User' else 'Anonymous User',
+                role=role,
+                status='active' if role == 'customer' else 'new',
+                wallet_balance=0.0,
+                incentive_balance=0.0,
+                bonus_balance=0.0,
+                upi_id=f"{name.lower().replace(' ', '.')}@okaxis" if name else "user@okaxis",
+                bank_account="State Bank of India ****1234"
+            )
+            created = True
         
         # Ensure role is set to driver if requesting as driver
         if role == 'driver' and user.role != 'driver':
@@ -450,20 +475,32 @@ class UserProfileViewSet(viewsets.ModelViewSet):
         
         email_normalized = email.strip().lower()
 
-        user, created = UserProfile.objects.get_or_create(
-            email=email_normalized,
-            defaults={
-                'phone': "+91 " + phone.strip().replace(" ", "") if phone else "+91 " + str(random.randint(9000000000, 9999999999)),
-                'name': name if name and name != 'Anonymous User' else 'Anonymous User',
-                'role': role,
-                'status': 'active' if role == 'customer' else 'new',
-                'wallet_balance': 0.0,
-                'incentive_balance': 0.0,
-                'bonus_balance': 0.0,
-                'upi_id': f"{name.lower().replace(' ', '.')}@okaxis" if name else "user@okaxis",
-                'bank_account': "State Bank of India ****1234"
-            }
-        )
+        phone_clean = phone.strip().replace(" ", "") if phone else ""
+        while phone_clean.startswith("+91") or phone_clean.startswith("91") or phone_clean.startswith("+"):
+            if phone_clean.startswith("+91"):
+                phone_clean = phone_clean[3:]
+            elif phone_clean.startswith("91"):
+                phone_clean = phone_clean[2:]
+            elif phone_clean.startswith("+"):
+                phone_clean = phone_clean[1:]
+
+        user = UserProfile.objects.filter(email=email_normalized).first()
+        created = False
+        if not user:
+            phone_val = "+91 " + phone_clean if phone_clean else "+91 " + str(random.randint(9000000000, 9999999999))
+            user = UserProfile.objects.create(
+                email=email_normalized,
+                phone=phone_val,
+                name=name if name and name != 'Anonymous User' else 'Anonymous User',
+                role=role,
+                status='active' if role == 'customer' else 'new',
+                wallet_balance=0.0,
+                incentive_balance=0.0,
+                bonus_balance=0.0,
+                upi_id=f"{name.lower().replace(' ', '.')}@okaxis" if name else "user@okaxis",
+                bank_account="State Bank of India ****1234"
+            )
+            created = True
         
         # Ensure role is set to driver if requesting as driver
         if role == 'driver' and user.role != 'driver':
@@ -826,7 +863,13 @@ class RideViewSet(viewsets.ModelViewSet):
             else:
                 commission_percent = bike_rate / 100.0
                 commission_label = f"{int(bike_rate)}%" if bike_rate.is_integer() else f"{bike_rate}%"
-            commission_amount = round(ride.fare * commission_percent, 2)
+            
+            pet_fee = 0.0
+            if ride.pet_friendly:
+                pet_fee = 50.0 if (ride.distance is not None and ride.distance <= 10.0) else 70.0
+                
+            base_fare = max(0.0, ride.fare - pet_fee)
+            commission_amount = round(base_fare * commission_percent, 2)
 
         fare_amount = ride.fare
         driver_earnings = round(fare_amount - commission_amount, 2)
@@ -1073,8 +1116,8 @@ class RideViewSet(viewsets.ModelViewSet):
     def active_ride(self, request):
         phone = request.query_params.get('phone')
         role = request.query_params.get('role')
-        if not phone:
-            return Response({'error': 'phone is required'}, status=status.HTTP_400_BAD_REQUEST)
+        if not phone or phone.strip() == "":
+            return Response(None, status=status.HTTP_200_OK)
         
         phone_clean = phone.strip().replace(" ", "")
         if phone_clean.startswith("+91"):
@@ -1665,11 +1708,12 @@ class LocationSearchView(APIView):
                 'format': 'json',
                 'limit': 10,
                 'viewbox': '80.00,13.30,80.45,12.70',
-                'bounded': 1
+                'bounded': 1,
+                'email': 'info.rideuu@gmail.com'
             }
             url = "https://nominatim.openstreetmap.org/search?" + urllib.parse.urlencode(params)
             try:
-                headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/120.0.0.0'}
+                headers = {'User-Agent': 'RideuuChennaiApp/1.0 (info.rideuu@gmail.com)'}
                 req = urllib.request.Request(url, headers=headers)
                 with urllib.request.urlopen(req, timeout=5) as response:
                     data = json.loads(response.read().decode('utf-8'))
@@ -1792,9 +1836,9 @@ class PlaceDetailsView(APIView):
         # If not cached but is OSM ID, look it up from Nominatim!
         if place_id.startswith('osm_'):
             osm_id_str = place_id[4:] # e.g. N247677540
-            url = f"https://nominatim.openstreetmap.org/lookup?osm_ids={osm_id_str}&format=json"
+            url = f"https://nominatim.openstreetmap.org/lookup?osm_ids={osm_id_str}&format=json&email=info.rideuu@gmail.com"
             try:
-                headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+                headers = {'User-Agent': 'RideuuChennaiApp/1.0 (info.rideuu@gmail.com)'}
                 req = urllib.request.Request(url, headers=headers)
                 with urllib.request.urlopen(req, timeout=5) as response:
                     data = json.loads(response.read().decode('utf-8'))
@@ -1899,9 +1943,10 @@ class FareEstimatorView(APIView):
                 url = "https://nominatim.openstreetmap.org/search?" + urllib.parse.urlencode({
                     'q': f"{q}, Chennai",
                     'format': 'json',
-                    'limit': 1
+                    'limit': 1,
+                    'email': 'info.rideuu@gmail.com'
                 })
-                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                req = urllib.request.Request(url, headers={'User-Agent': 'RideuuChennaiApp/1.0 (info.rideuu@gmail.com)'})
                 try:
                     with urllib.request.urlopen(req, timeout=3) as response:
                         data = json.loads(response.read().decode('utf-8'))
@@ -2024,6 +2069,11 @@ class FareEstimatorView(APIView):
                             route_resolved = True
                 except:
                     pass
+
+        # Clamp distance if it is suspiciously large (indicates coordinate mismatch or out-of-bounds geocoding)
+        if distance_km > 50.0:
+            distance_km = 6.2
+            duration_min = 15
 
         # 3. Calculate Surge multiplier from SurgeZoneConfig and SurgeSchedule
         bike_mult = 1.0
@@ -2254,6 +2304,20 @@ class ReverseGeocodingView(APIView):
                         print(f"[GOOGLE GEOCODING SUCCESS] Resolved: {address}", flush=True)
             except Exception as e:
                 print(f"[GOOGLE GEOCODING ERROR] {e}. Falling back.", flush=True)
+
+        if not address:
+            # Query Nominatim Reverse Geocoding
+            url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&email=info.rideuu@gmail.com"
+            try:
+                headers = {'User-Agent': 'RideuuChennaiApp/1.0 (info.rideuu@gmail.com)'}
+                req = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(req, timeout=4) as response:
+                    data = json.loads(response.read().decode('utf-8'))
+                    if data and 'display_name' in data:
+                        address = data['display_name']
+                        print(f"[NOMINATIM REVERSE GEOCAGE SUCCESS] Resolved: {address}", flush=True)
+            except Exception as e:
+                print(f"[NOMINATIM REVERSE GEOCAGE ERROR] {e}. Falling back to mocks.", flush=True)
 
         if not address:
             # To prevent slow, rate-limited Nominatim API calls from blocking the single-threaded Django dev server,
@@ -2562,8 +2626,13 @@ class VerifyOTPView(APIView):
         phone_val = request.data.get('phone', '')
         if phone_val:
             phone_clean = phone_val.strip().replace(" ", "")
-            if phone_clean.startswith("+91"):
-                phone_clean = phone_clean[3:]
+            while phone_clean.startswith("+91") or phone_clean.startswith("91") or phone_clean.startswith("+"):
+                if phone_clean.startswith("+91"):
+                    phone_clean = phone_clean[3:]
+                elif phone_clean.startswith("91"):
+                    phone_clean = phone_clean[2:]
+                elif phone_clean.startswith("+"):
+                    phone_clean = phone_clean[1:]
             phone_normalized = "+91 " + phone_clean
         else:
             phone_normalized = "+91 " + str(random.randint(9000000000, 9999999999))

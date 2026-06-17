@@ -19,7 +19,7 @@ export const Route = createFileRoute("/app")({
 
 function AppShell() {
   const { isPwaInstalled, token } = useAppStore();
-  
+
   // local PWA simulation states
   const [showBanner, setShowBanner] = useState(!isPwaInstalled);
   const [isOffline, setIsOffline] = useState(false);
@@ -32,7 +32,7 @@ function AppShell() {
   // Check if running in standalone mode (already installed)
   useEffect(() => {
     const checkStandalone = () => {
-      const isStandaloneMode = 
+      const isStandaloneMode =
         window.matchMedia('(display-mode: standalone)').matches ||
         (navigator as any).standalone ||
         document.referrer.includes('android-app://');
@@ -116,7 +116,7 @@ function AppShell() {
       setSyncing(false);
       setShowSyncSuccess(true);
       setTimeout(() => setShowSyncSuccess(false), 2000);
-      
+
       store.addNotification({
         cat: "alerts",
         title: "Background Sync Complete",
@@ -134,7 +134,7 @@ function AppShell() {
         <div className="relative my-4">
           <div className="pulse-ring absolute inset-0 rounded-full bg-primary/20 scale-125" />
           <div className="relative grid size-20 place-items-center rounded-3xl bg-primary text-slate-950 font-black text-3xl shadow-2xl animate-scale-in">
-            N
+            R
           </div>
         </div>
         <div className="mt-4 space-y-1 text-center">
@@ -147,13 +147,13 @@ function AppShell() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground transition-colors duration-300 relative">
-      
+
       {/* Offline Mode Advisory Banner */}
       {isOffline && (
         <div className="sticky top-0 z-50 bg-amber-500 text-slate-950 text-[10px] font-bold px-4 py-2 flex items-center justify-between shadow-md">
           <span className="flex items-center gap-1.5"><WifiOff className="size-3.5 animate-bounce" /> Offline Mode Active · Using Sync Cache</span>
-          <button 
-            onClick={handleSimulateSync} 
+          <button
+            onClick={handleSimulateSync}
             disabled={syncing}
             className="rounded bg-slate-950 px-2 py-0.5 text-[8px] font-black text-amber-500 uppercase flex items-center gap-1"
           >
@@ -182,7 +182,7 @@ function AppShell() {
 
       <div className="mx-auto min-h-dvh max-w-md pb-24 relative">
         {/* PWA Install Banner */}
-        {showBanner && !isStandalone && (
+        {showBanner && !isStandalone && !isPwaInstalled && (
           <div className="mx-4 mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-sm text-xs font-semibold flex items-center justify-between text-left animate-fade-in relative overflow-hidden">
             <div className="flex items-start gap-3">
               <div className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground shrink-0 shadow shadow-primary/20">
@@ -193,9 +193,9 @@ function AppShell() {
                 <p className="text-[10px] text-muted-foreground mt-0.5 leading-normal">Add to home screen for 1-tap offline ride booking</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 onClick={handleInstallPwa}
                 className="rounded-xl bg-primary px-3.5 py-2 text-[10px] font-black text-primary-foreground shadow flex items-center gap-1 hover:brightness-105 active:scale-95 transition"
               >

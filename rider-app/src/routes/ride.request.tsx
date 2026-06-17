@@ -48,6 +48,7 @@ function RideRequest() {
       isFemaleOnly: true,
       surgeMultiplier: 1.2,
       rainBonus: 20,
+      pet_friendly: false,
     };
   }, [incomingRequest]);
 
@@ -77,9 +78,9 @@ function RideRequest() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(239,68,68,0.15)_0%,transparent_50%),radial-gradient(circle_at_70%_60%,rgba(15,23,42,0.95)_0%,rgba(15,23,42,1)_100%)]">
           {/* Glowing pulse rings representing customer location */}
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2">
-            <div className="h-28 w-28 rounded-full bg-primary/10 pulse-ring flex items-center justify-center">
-              <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
-                <MapPin className="h-8 w-8 text-primary animate-bounce" />
+            <div className={`h-28 w-28 rounded-full pulse-ring flex items-center justify-center ${activeReq.pet_friendly ? "bg-amber-500/10" : "bg-primary/10"}`}>
+              <div className={`h-16 w-16 rounded-full flex items-center justify-center ${activeReq.pet_friendly ? "bg-amber-500/20" : "bg-primary/20"}`}>
+                <MapPin className={`h-8 w-8 animate-bounce ${activeReq.pet_friendly ? "text-amber-500" : "text-primary"}`} />
               </div>
             </div>
           </div>
@@ -97,23 +98,39 @@ function RideRequest() {
         </div>
 
         {/* Floating accept/reject action dialog card */}
-        <div className="absolute bottom-6 inset-x-4 rounded-3xl bg-slate-950/90 border border-white/15 p-6 backdrop-blur-lg slide-up text-white shadow-2xl">
+        <div className={`absolute bottom-6 inset-x-4 rounded-3xl p-6 backdrop-blur-lg slide-up text-white shadow-2xl border transition-all duration-350 ${
+          activeReq.pet_friendly
+            ? "bg-gradient-to-br from-amber-600/95 via-orange-600/90 to-yellow-700/95 border-amber-400/50"
+            : "bg-slate-950/90 border-white/15"
+        }`}>
           {/* Timeout Visual Indicator bar */}
           <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden mb-5">
             <div
-              className="h-full bg-primary rounded-full transition-all duration-1000"
+              className={`h-full rounded-full transition-all duration-1000 ${
+                activeReq.pet_friendly ? "bg-white" : "bg-primary"
+              }`}
               style={{ width: `${(seconds / 15) * 100}%` }}
             />
           </div>
 
           <div className="flex items-center justify-between mb-4">
             <span className="text-[10px] font-black tracking-widest text-primary bg-primary/15 px-2.5 py-0.5 rounded-md uppercase">
-              {t("new_ride")} · AUTO
+              {t("new_ride")} · {activeReq.pet_friendly ? "PET FRIENDLY" : "AUTO"}
             </span>
             <span className="text-xs font-black bg-primary text-primary-foreground px-3 py-1 rounded-full animate-pulse">
               {seconds}s left
             </span>
           </div>
+
+          {/* Pet Friendly Info Banner */}
+          {activeReq.pet_friendly && (
+            <div className="mb-4 flex items-center gap-2.5 bg-white/20 border border-white/30 p-3 rounded-2xl text-white shadow-inner animate-pulse">
+              <span className="text-xl">🐾</span>
+              <div className="text-[10px] font-extrabold uppercase tracking-wide leading-snug">
+                for this ride you earn upto 70rs based on km
+              </div>
+            </div>
+          )}
 
           {/* Fare & Metrics */}
           <div className="flex items-baseline gap-2">

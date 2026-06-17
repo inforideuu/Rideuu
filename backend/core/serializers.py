@@ -118,10 +118,15 @@ class RideSerializer(serializers.ModelSerializer):
         except:
             pass
 
+        pet_fee = 0.0
+        if obj.pet_friendly:
+            pet_fee = 50.0 if (obj.distance is not None and obj.distance <= 10.0) else 70.0
+
+        base_fare = max(0.0, obj.fare - pet_fee)
         v_type = obj.vehicle_type.lower() if obj.vehicle_type else 'bike'
         if 'auto' in v_type:
-            return round(obj.fare * (auto_rate / 100.0), 2)
-        return round(obj.fare * (bike_rate / 100.0), 2)
+            return round(base_fare * (auto_rate / 100.0), 2)
+        return round(base_fare * (bike_rate / 100.0), 2)
 
 class TransactionSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source='user.name', read_only=True)

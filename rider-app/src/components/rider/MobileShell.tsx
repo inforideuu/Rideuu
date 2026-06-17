@@ -17,15 +17,15 @@ export function MobileShell({
   style?: React.CSSProperties;
 }) {
   const { lowNetwork, language, t, addNotification } = useRider();
-  const [showBanner, setShowBanner] = useState(true);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isStandalone, setIsStandalone] = useState(false);
   const [isPwaInstalled, setIsPwaInstalled] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("namma_rider_pwa_installed") === "true";
     }
     return false;
   });
+  const [showBanner, setShowBanner] = useState(!isPwaInstalled);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     const checkStandalone = () => {
@@ -112,7 +112,7 @@ export function MobileShell({
 
       <div className={cn("mx-auto max-w-md min-h-screen bg-background relative border-x border-border shadow-2xl", className)}>
         {/* PWA Install Banner */}
-        {showBanner && !isStandalone && (
+        {showBanner && !isStandalone && !isPwaInstalled && (
           <div className="mx-4 mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-sm text-xs font-semibold flex items-center justify-between text-left animate-fade-in relative overflow-hidden">
             <div className="flex items-start gap-3">
               <div className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground shrink-0 shadow shadow-primary/20">
