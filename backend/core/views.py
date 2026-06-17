@@ -2331,6 +2331,51 @@ def send_email_otp(to_email, otp_code):
         """
         msg.attach(MIMEText(body, 'html'))
         
+        # Check if we should bypass SMTP and use Resend's HTTPS API directly to avoid Render's SMTP port block
+        if smtp_host == "smtp.resend.com" or app_password.startswith("re_"):
+            import urllib.request
+            import json
+            
+            url = "https://api.resend.com/emails"
+            headers = {
+                "Authorization": f"Bearer {app_password}",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "from": from_email,
+                "to": to_email,
+                "subject": f"Rideuu - Your Verification OTP is {otp_code}",
+                "html": body
+            }
+            
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(data).encode('utf-8'),
+                headers=headers,
+                method='POST'
+            )
+            with urllib.request.urlopen(req, timeout=10.0) as response:
+                res_body = response.read().decode('utf-8')
+                print(f"[RESEND HTTP SUCCESS] Response: {res_body}", flush=True)
+                
+            try:
+                from .models import SystemSetting
+                from django.utils import timezone
+                SystemSetting.objects.update_or_create(
+                    key='last_smtp_status',
+                    defaults={'value': {
+                        'status': 'SUCCESS',
+                        'message': f"Sent OTP {otp_code} to {to_email} via Resend HTTP API",
+                        'to_email': to_email,
+                        'timestamp': str(timezone.now())
+                    }}
+                )
+            except Exception as db_err:
+                print(f"[SMTP DB LOG ERROR] {db_err}", flush=True)
+                
+            return True
+            
+        # Fallback to standard SMTP
         server = smtplib.SMTP(smtp_host, smtp_port, timeout=10.0)
         server.ehlo()
         server.starttls()
