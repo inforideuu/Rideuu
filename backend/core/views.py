@@ -2334,12 +2334,14 @@ def send_email_otp(to_email, otp_code):
         # Check if we should bypass SMTP and use Resend's HTTPS API directly to avoid Render's SMTP port block
         if smtp_host == "smtp.resend.com" or app_password.startswith("re_"):
             import urllib.request
+            import urllib.error
             import json
             
             url = "https://api.resend.com/emails"
             headers = {
                 "Authorization": f"Bearer {app_password}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0"
             }
             data = {
                 "from": from_email,
@@ -2354,9 +2356,13 @@ def send_email_otp(to_email, otp_code):
                 headers=headers,
                 method='POST'
             )
-            with urllib.request.urlopen(req, timeout=10.0) as response:
-                res_body = response.read().decode('utf-8')
-                print(f"[RESEND HTTP SUCCESS] Response: {res_body}", flush=True)
+            try:
+                with urllib.request.urlopen(req, timeout=10.0) as response:
+                    res_body = response.read().decode('utf-8')
+                    print(f"[RESEND HTTP SUCCESS] Response: {res_body}", flush=True)
+            except urllib.error.HTTPError as he:
+                err_body = he.read().decode('utf-8')
+                raise Exception(f"Resend API Error {he.code}: {he.reason} - Details: {err_body}")
                 
             try:
                 from .models import SystemSetting
