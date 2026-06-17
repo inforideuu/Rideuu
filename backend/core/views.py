@@ -2302,7 +2302,8 @@ from email.mime.multipart import MIMEMultipart
 
 def send_email_otp(to_email, otp_code):
     try:
-        from_email = os.environ.get("SMTP_USER", "info.rideuu@gmail.com")
+        smtp_user = os.environ.get("SMTP_USER", "info.rideuu@gmail.com")
+        from_email = os.environ.get("SMTP_FROM", smtp_user)
         app_password = os.environ.get("SMTP_PASSWORD", "lxilgubdjjolpwer")
         smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
         smtp_port = int(os.environ.get("SMTP_PORT", "587"))
@@ -2333,7 +2334,7 @@ def send_email_otp(to_email, otp_code):
         server.ehlo()
         server.starttls()
         server.ehlo()
-        server.login(from_email, app_password)
+        server.login(smtp_user, app_password)
         server.sendmail(from_email, to_email, msg.as_string())
         server.quit()
         print(f"[SMTP SUCCESS] Sent OTP {otp_code} to {to_email}", flush=True)
