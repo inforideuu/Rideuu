@@ -2331,6 +2331,64 @@ def send_email_otp(to_email, otp_code):
         """
         msg.attach(MIMEText(body, 'html'))
         
+        # Check if we should use Brevo's HTTPS API directly to avoid domain verification restrictions and SMTP port blocks
+        brevo_key = os.environ.get("BREVO_API_KEY")
+        if brevo_key:
+            import urllib.request
+            import urllib.error
+            import json
+            
+            url = "https://api.brevo.com/v3/smtp/email"
+            headers = {
+                "api-key": brevo_key,
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0"
+            }
+            data = {
+                "sender": {
+                    "name": "Rideuu",
+                    "email": from_email
+                },
+                "to": [
+                    {
+                        "email": to_email
+                    }
+                ],
+                "subject": f"Rideuu - Your Verification OTP is {otp_code}",
+                "htmlContent": body
+            }
+            
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(data).encode('utf-8'),
+                headers=headers,
+                method='POST'
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=10.0) as response:
+                    res_body = response.read().decode('utf-8')
+                    print(f"[BREVO HTTP SUCCESS] Response: {res_body}", flush=True)
+            except urllib.error.HTTPError as he:
+                err_body = he.read().decode('utf-8')
+                raise Exception(f"Brevo API Error {he.code}: {he.reason} - Details: {err_body}")
+                
+            try:
+                from .models import SystemSetting
+                from django.utils import timezone
+                SystemSetting.objects.update_or_create(
+                    key='last_smtp_status',
+                    defaults={'value': {
+                        'status': 'SUCCESS',
+                        'message': f"Sent OTP {otp_code} to {to_email} via Brevo HTTP API",
+                        'to_email': to_email,
+                        'timestamp': str(timezone.now())
+                    }}
+                )
+            except Exception as db_err:
+                print(f"[SMTP DB LOG ERROR] {db_err}", flush=True)
+                
+            return True
+            
         # Check if we should bypass SMTP and use Resend's HTTPS API directly to avoid Render's SMTP port block
         if smtp_host == "smtp.resend.com" or app_password.startswith("re_"):
             import urllib.request
