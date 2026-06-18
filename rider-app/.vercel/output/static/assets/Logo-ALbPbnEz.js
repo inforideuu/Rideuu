@@ -1,0 +1,1 @@
+import{j as i}from"./index-DcNBtYhc.js";function s({size:t=36}){return i.jsxs("div",{className:"flex items-center gap-2",children:[i.jsx("div",{children:i.jsx("img",{src:"./ridu_logo.png",width:150,height:150,alt:"rideuu"})}),i.jsx("div",{className:"font-bold tracking-tight text-foreground"})]})}export{s as L};

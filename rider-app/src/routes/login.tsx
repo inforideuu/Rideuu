@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { MobileShell } from "@/components/rider/MobileShell";
 import { Logo } from "@/components/rider/Logo";
-import { ArrowRight, Phone, Mail, Shield, Sparkles, Globe, Fingerprint, RefreshCw, UserCheck, Download } from "lucide-react";
+import { ArrowRight, Phone, Mail, Shield, Sparkles, Globe, RefreshCw, UserCheck, Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRider } from "../context/RiderContext";
 import { api, BASE_URL } from "../lib/api";
@@ -27,7 +27,6 @@ function LoginPage() {
   const [vehiclePlate, setVehiclePlate] = useState("");
   const [vehicleColor, setVehicleColor] = useState("");
   const [vehicleYear, setVehicleYear] = useState("");
-  const [biometricScanning, setBiometricScanning] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [sending, setSending] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -133,59 +132,7 @@ function LoginPage() {
     }
   };
 
-  const handleBiometricAuth = async () => {
-    const email = localStorage.getItem("namma_last_biometric_email");
-    if (!email) {
-      alert("No biometrics registered on this device. Please log in using Email OTP first.");
-      return;
-    }
-    
-    try {
-      setBiometricScanning(true);
-      setErrorMsg("");
-      
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-      const getOptions = {
-        publicKey: {
-          challenge: challenge,
-          timeout: 60000,
-          userVerification: "required"
-        }
-      };
-      const cred = await navigator.credentials.get(getOptions as any);
-      if (cred) {
-        const savedToken = localStorage.getItem(`namma_biometric_token_${email}`);
-        if (savedToken) {
-          setToken(savedToken);
-          // Fetch user profile details by email to log them in fully
-          const activePhone = localStorage.getItem("namma_phone") || "";
-          const activeVehType = localStorage.getItem("namma_vehicle_type") || "";
-          const name = localStorage.getItem("namma_name") || "";
-          const data = await api.getUserByEmail(email, "driver", name, activeVehType, activePhone);
-          if (data) {
-            setEmail(data.email);
-            setPhone(data.phone);
-            setProfileName(data.name);
-            if (data.kyc_status === "VERIFIED" || data.status === "active") {
-              nav({ to: "/dashboard" });
-            } else {
-              nav({ to: "/kyc" });
-            }
-          } else {
-            setErrorMsg("Failed to retrieve user profile after authentication.");
-          }
-        } else {
-          setErrorMsg("Biometric login session expired. Please log in using OTP.");
-        }
-      }
-    } catch (error) {
-      console.error("WebAuthn assertion failed:", error);
-      setErrorMsg("Biometrics authentication failed or was cancelled.");
-    } finally {
-      setBiometricScanning(false);
-    }
-  };
+
 
   return (
     <MobileShell
@@ -244,7 +191,7 @@ function LoginPage() {
         {/* Premium Authentication Card */}
         <div className="mt-5 rounded-3xl bg-background/30 backdrop-blur-md border border-border/40 p-6 relative overflow-hidden">
 
-          {isRegistering && (
+          {isRegistering && authMethod !== null && (
             <div className="mb-4 space-y-3">
               <div>
                 <label className="text-[10px] font-extrabold text-muted-foreground tracking-wider uppercase">
@@ -395,7 +342,7 @@ function LoginPage() {
               >
                 <div className="flex items-center gap-3">
                   <Phone className="h-4 w-4 text-primary" />
-                  <span>Login with Phone Number</span>
+                  <span>{isRegistering ? "Register with Mobile Number" : "Login with Phone Number"}</span>
                 </div>
                 <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
               </button>
@@ -406,7 +353,7 @@ function LoginPage() {
               >
                 <div className="flex items-center gap-3">
                   <Mail className="h-4 w-4 text-primary" />
-                  <span>Login with Email ID</span>
+                  <span>{isRegistering ? "Register with Email ID" : "Login with Email ID"}</span>
                 </div>
                 <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
               </button>
@@ -450,7 +397,7 @@ function LoginPage() {
                 onClick={() => setAuthMethod(null)}
                 className="mt-3 w-full text-center text-xs font-bold text-muted-foreground hover:text-primary transition cursor-pointer"
               >
-                ← Back to Login Options
+                ← {isRegistering ? "Back to Registration Options" : "Back to Login Options"}
               </button>
             </>
           ) : (
@@ -490,7 +437,7 @@ function LoginPage() {
                 onClick={() => setAuthMethod(null)}
                 className="mt-3 w-full text-center text-xs font-bold text-muted-foreground hover:text-primary transition cursor-pointer"
               >
-                ← Back to Login Options
+                ← {isRegistering ? "Back to Registration Options" : "Back to Login Options"}
               </button>
             </>
           )}

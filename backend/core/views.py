@@ -183,6 +183,14 @@ class UserProfileViewSet(viewsets.ModelViewSet):
         return UserProfile.objects.filter(id=user.id)
 
     def perform_update(self, serializer):
+        email = self.request.data.get('email')
+        if email:
+            email_clean = email.strip().lower()
+            profile = self.get_object()
+            if UserProfile.objects.filter(email=email_clean).exclude(id=profile.id).exists():
+                from rest_framework.serializers import ValidationError
+                raise ValidationError({'detail': 'Email address already registered to another account.'})
+
         password = self.request.data.get('password')
         if password:
             from django.contrib.auth.hashers import make_password
@@ -2636,6 +2644,9 @@ class VerifyOTPView(APIView):
             phone_normalized = "+91 " + phone_clean
         else:
             phone_normalized = "+91 " + str(random.randint(9000000000, 9999999999))
+            
+        if UserProfile.objects.filter(phone=phone_normalized).exclude(email=email).exists():
+            return Response({'error': 'This phone number is already registered to another account.'}, status=status.HTTP_400_BAD_REQUEST)
             
         vehicle_type = request.data.get('vehicle_type', 'auto')
         if 'bike' in vehicle_type.lower():

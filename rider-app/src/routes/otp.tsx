@@ -54,41 +54,7 @@ function OtpPage() {
       localStorage.setItem("namma_phone", res.user.phone);
       localStorage.setItem("namma_name", res.user.name);
 
-      // Biometrics Enrollment Prompt
-      const registerBio = window.confirm("Would you like to enable Face ID / Fingerprint login on this device for next time?");
-      if (registerBio) {
-        try {
-          const challenge = new Uint8Array(32);
-          window.crypto.getRandomValues(challenge);
-          const createOptions = {
-            publicKey: {
-              challenge: challenge,
-              rp: { name: "Rideuu" },
-              user: {
-                id: new TextEncoder().encode(res.user.email),
-                name: res.user.email,
-                displayName: res.user.email
-              },
-              pubKeyCredParams: [{ type: "public-key", alg: -7 }],
-              authenticatorSelection: {
-                authenticatorAttachment: "platform",
-                userVerification: "required"
-              },
-              timeout: 60000
-            }
-          };
-          const cred = await navigator.credentials.create(createOptions as any);
-          if (cred) {
-            localStorage.setItem(`namma_biometric_enabled_${res.user.email}`, "true");
-            localStorage.setItem(`namma_biometric_token_${res.user.email}`, res.token);
-            localStorage.setItem("namma_last_biometric_email", res.user.email);
-            alert("Biometrics registered successfully!");
-          }
-        } catch (err) {
-          console.error("WebAuthn creation failed:", err);
-          alert("Biometrics registration cancelled or device not supported.");
-        }
-      }
+
 
       if (res.user.kyc_status === "VERIFIED" || res.user.status === "active") {
         nav({ to: "/dashboard" });
@@ -96,7 +62,8 @@ function OtpPage() {
         nav({ to: "/kyc" });
       }
     } else {
-      alert("Invalid verification code. Access denied.");
+      const errorMsg = res?.error || "Invalid verification code. Access denied.";
+      alert(errorMsg);
     }
   };
 

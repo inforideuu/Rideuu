@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, Phone, Mail, ShieldCheck, Fingerprint, Smartphone, Laptop, Sparkles, Check, RefreshCw, Download } from "lucide-react";
+import { ArrowLeft, ArrowRight, Phone, Mail, ShieldCheck, Smartphone, Laptop, Sparkles, Check, RefreshCw, Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAppStore, store, translate } from "@/lib/store";
 import { api } from "../lib/api";
@@ -47,9 +47,7 @@ function Login() {
 
   // Simulation states
   const [countdown, setCountdown] = useState(30);
-  const [biometricSupported, setBiometricSupported] = useState(true);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [showBiometricModal, setShowBiometricModal] = useState(false);
+
   const [showResetSuccess, setShowResetSuccess] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [showConsentModal, setShowConsentModal] = useState<"Google" | "Apple" | null>(null);
@@ -116,7 +114,6 @@ function Login() {
     const res = await api.verifyOtp(target, enteredOtp, "customer", "Chennai Commuter", phoneNum);
     setVerifyingOtp(false);
     if (res && res.token) {
-      localStorage.setItem(`namma_biometric_token_${res.user.email}`, res.token);
       store.update((s) => {
         s.token = res.token;
         s.profile.phone = res.user.phone;
@@ -137,9 +134,10 @@ function Login() {
         navigate({ to: "/app/home" });
       }
     } else {
-      alert("Invalid OTP code. Access denied.");
+      const errorMsg = res?.error || "Invalid OTP code. Access denied.";
+      alert(errorMsg);
     }
-  };;
+  };
 
   const handleRegisterProfile = async () => {
     if (!regName || !regPassword) {
@@ -154,9 +152,8 @@ function Login() {
       gender: regGender,
       phone: phoneNum ? "+91 " + phoneNum : undefined
     }, store.getState().token || undefined);
-    setLoggingIn(true);
     setLoggingIn(false);
-    if (res) {
+    if (res && !res.error) {
       store.update((s) => {
         s.profile.name = res.name;
         s.profile.email = res.email || "";
@@ -164,7 +161,8 @@ function Login() {
       });
       navigate({ to: "/app/home" });
     } else {
-      alert("Failed to save profile. Please try again.");
+      const errorMsg = res?.error || "Failed to save profile. Please try again.";
+      alert(errorMsg);
     }
   };
 
@@ -181,7 +179,6 @@ function Login() {
     );
     setLoggingIn(false);
     if (res && res.token) {
-      localStorage.setItem(`namma_biometric_token_${res.user.email}`, res.token);
       store.update((s) => {
         s.token = res.token;
         s.profile.phone = res.user.phone;
@@ -243,88 +240,7 @@ function Login() {
     }
   };
 
-  const toggleBiometric = async () => {
-    if (!biometricEnabled) {
-      const email = emailAddress || localStorage.getItem("namma_last_biometric_email");
-      if (email && localStorage.getItem(`namma_biometric_enabled_${email}`)) {
-        try {
-          const challenge = new Uint8Array(32);
-          window.crypto.getRandomValues(challenge);
-          const getOptions = {
-            publicKey: {
-              challenge: challenge,
-              timeout: 60000,
-              userVerification: "required"
-            }
-          };
-          const cred = await navigator.credentials.get(getOptions as any);
-          if (cred) {
-            const savedToken = localStorage.getItem(`namma_biometric_token_${email}`);
-            if (savedToken) {
-              setLoggingIn(true);
-              store.update((s) => {
-                s.token = savedToken;
-              });
-              await store.loadUserData();
-              setLoggingIn(false);
-              setBiometricEnabled(true);
-              navigate({ to: "/app/home" });
-              return;
-            }
-          }
-        } catch (err) {
-          console.error("Biometric verification failed:", err);
-        }
-      }
-      setShowBiometricModal(true);
-    } else {
-      setBiometricEnabled(false);
-    }
-  };
 
-  const handleConfirmBiometric = async () => {
-    const email = emailAddress || store.getState().profile.email || localStorage.getItem("namma_last_biometric_email");
-    if (!email) {
-      alert("Please enter your email address first to link biometrics.");
-      return;
-    }
-    try {
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-      const createOptions = {
-        publicKey: {
-          challenge: challenge,
-          rp: { name: "Rideuu" },
-          user: {
-            id: new TextEncoder().encode(email),
-            name: email,
-            displayName: email
-          },
-          pubKeyCredParams: [{ type: "public-key", alg: -7 }],
-          authenticatorSelection: {
-            authenticatorAttachment: "platform",
-            userVerification: "required"
-          },
-          timeout: 60000
-        }
-      };
-      const cred = await navigator.credentials.create(createOptions as any);
-      if (cred) {
-        setBiometricEnabled(true);
-        setShowBiometricModal(false);
-        localStorage.setItem(`namma_biometric_enabled_${email}`, "true");
-        localStorage.setItem("namma_last_biometric_email", email);
-        const token = store.getState().token;
-        if (token) {
-          localStorage.setItem(`namma_biometric_token_${email}`, token);
-        }
-        alert("Biometrics registered successfully!");
-      }
-    } catch (err) {
-      console.error("Biometrics registration failed:", err);
-      alert("Biometrics registration cancelled or not supported.");
-    }
-  };
 
   const handleRevokeDevice = async (id: string) => {
     const token = store.getState().token;
@@ -721,34 +637,7 @@ function Login() {
         </p>
       </div>
 
-      {/* Biometric setup popup overlay */}
-      {showBiometricModal && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-3xl border border-border/40 bg-background/40 backdrop-blur-xl p-6 text-center space-y-4 animate-scale-in">
-            <Fingerprint className="size-16 mx-auto text-primary animate-pulse" />
-            <div>
-              <h2 className="text-lg font-bold">Register Biometrics</h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Link your device's fingerprint or FaceID credentials with Rideuu for quick 1-tap sign in.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleConfirmBiometric}
-                className="flex-1 rounded-xl bg-primary py-3 text-xs font-bold text-primary-foreground"
-              >
-                Authenticate & Save
-              </button>
-              <button
-                onClick={() => setShowBiometricModal(false)}
-                className="flex-1 rounded-xl border border-border/40 bg-background/20 backdrop-blur-md py-3 text-xs font-semibold"
-              >
-                Skip
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Social Login Consent Modal Selection Popup */}
       {showConsentModal && (

@@ -1,0 +1,28 @@
+{
+  "name": "Rideuu Driver",
+  "short_name": "Rideuu Driver",
+  "description": "Chennai's professional on-demand driver and rider booking app.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090d16",
+  "theme_color": "#facc15",
+  "categories": [
+    "transportation",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

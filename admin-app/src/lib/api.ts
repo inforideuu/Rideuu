@@ -95,5 +95,7 @@ export const api = {
     fetchAPI("/campaigns/", { method: "POST", body: JSON.stringify(data) }),
   refundTicket: (id: string | number, amount: number) =>
     fetchAPI(`/tickets/${id}/refund/`, { method: "POST", body: JSON.stringify({ amount }) }),
+  searchLocations: (query: string) => 
+    fetchAPI(`/location/search/?q=${encodeURIComponent(query)}`),
 };
 

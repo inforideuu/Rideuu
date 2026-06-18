@@ -61,6 +61,8 @@ function Page() {
   const [showZoneForm, setShowZoneForm] = useState(false);
   const [editingZone, setEditingZone] = useState<Zone | null>(null);
   const [zoneNameInput, setZoneNameInput] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [zoneBikeMultInput, setZoneBikeMultInput] = useState("1.0");
   const [zoneAutoMultInput, setZoneAutoMultInput] = useState("1.0");
   const [zoneRainEnabled, setZoneRainEnabled] = useState(false);
@@ -233,6 +235,24 @@ function Page() {
       } catch (e) {
         console.error("Failed to update multiplier:", e);
       }
+    }
+  };
+
+  const handleSearchChange = async (val: string) => {
+    setZoneNameInput(val);
+    if (val.trim().length >= 2) {
+      setShowDropdown(true);
+      try {
+        const res = await (api as any).searchLocations(val);
+        if (Array.isArray(res)) {
+          setSearchResults(res);
+        }
+      } catch (e) {
+        console.error("Search failed:", e);
+      }
+    } else {
+      setShowDropdown(false);
+      setSearchResults([]);
     }
   };
 
@@ -686,15 +706,33 @@ function Page() {
             <Panel title={editingZone ? "Edit Surge Zone details" : "Add new Surge Zone"} description="Save changes directly to DB config table.">
               <form onSubmit={handleAddOrEditZone} className="space-y-4 text-xs font-semibold text-left">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2">
+                  <div className="col-span-2 relative">
                     <label className="text-[10px] text-muted-foreground uppercase block mb-1">Zone Name/ID</label>
                     <Input 
-                      placeholder="e.g. Adyar" 
+                      placeholder="Search and select location (e.g. Adyar)" 
                       value={zoneNameInput}
-                      onChange={e => setZoneNameInput(e.target.value)}
+                      onChange={e => handleSearchChange(e.target.value)}
+                      onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                       disabled={!!editingZone}
                       className="bg-background"
                     />
+                    {showDropdown && searchResults.length > 0 && !editingZone && (
+                      <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {searchResults.map((res: any) => (
+                          <div
+                            key={res.place_id}
+                            onClick={() => {
+                              const namePart = res.name.split(',')[0];
+                              setZoneNameInput(namePart);
+                              setShowDropdown(false);
+                            }}
+                            className="px-3 py-2 cursor-pointer hover:bg-muted text-xs border-b border-border/40 last:border-b-0 text-foreground text-left"
+                          >
+                            {res.name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="text-[10px] text-muted-foreground uppercase block mb-1">Bike Multiplier</label>

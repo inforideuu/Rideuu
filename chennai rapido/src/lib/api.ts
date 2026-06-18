@@ -52,11 +52,20 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     if (res.status === 204) return null;
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`API Error ${res.status}: ${errText}`);
+      let parsedErr: any = null;
+      try {
+        parsedErr = JSON.parse(errText);
+      } catch (e) {}
+      
+      const errMsg = parsedErr?.error || parsedErr?.detail || (parsedErr && Object.values(parsedErr).flat().join(" ")) || `API Error ${res.status}: ${errText}`;
+      throw new Error(errMsg);
     }
     return await res.json();
-  } catch (error) {
+  } catch (error: any) {
     console.warn(`Failed fetching ${url}, using local fallback.`, error);
+    if (error && error.message) {
+      return { error: error.message };
+    }
     return null;
   }
 }
